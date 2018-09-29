@@ -224,6 +224,11 @@ const user = {
         });
     },
 
+    /**
+     *
+     * @param data
+     * @returns {Promise<any>}
+     */
     getUsers: data => {
         const reqHeaders = data.headers;
         const reqBody = data.body;
@@ -257,6 +262,11 @@ const user = {
         });
     },
 
+    /**
+     *
+     * @param data
+     * @returns {Promise<any>}
+     */
     updateUserByAdmin: data => {
         const reqHeaders = data.headers;
         const reqBody = data.body;
@@ -290,34 +300,217 @@ const user = {
                     });
                 })
                 .then(Helper.generateUpdateInfo)
-                .then(qwe => {
-                    console.log('errrrrrrrrrrrrrrrrr');
-                    console.log(qwe);
-                })
+                .then(res => updateUserByAdmin(userId, res))
+                .then(resolve)
                 .catch(reject)
-
-                // .then(updateUserByAdmin)
-                // .then(res => {
-                //     resolve(res,'3333333333')
-                // })
-                // .catch(err => {
-                //     winston('error', err);
-                //
-                //     reject({
-                //         code: 400,
-                //         status: "error",
-                //         message: "Ups! Something went wrong :("
-                //     })
-                // })
         });
     },
 
+    /**
+     * Increase balance By Admin
+     * @param data
+     * @returns {Promise<any>}
+     */
     increaseBalance: data => {
-        console.log(data);
+        const mainInfo = {};
+        mainInfo.headers = data.headers;
+        mainInfo.body = data.body;
+        mainInfo.userId = data.params.userId.toString();
+
+        const updatableFields = {
+            currency: {
+                name: "Currency",
+                type: "text",
+                minLength: 3,
+                maxLength: 3,
+                required: true
+            },
+            amount: {
+                name: "Amount",
+                type: "number",
+                required: true
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            Helper.getTokenInfo(mainInfo.headers.authorization)
+                .then(res => {
+                    if ("admin" !== res.role) {
+                        reject({
+                            code: 401,
+                            status: "error",
+                            message: "You don't dave permission to do this action!"
+                        });
+                    }
+
+                    mainInfo.role = res.role;
+                    return mainInfo;
+                })
+                .then(mainInfo => {
+                    return new Promise((resolve, reject) => {
+                        Helper.validateData(updatableFields, mainInfo.body)
+                            .then(resolve)
+                            .catch(reject)
+                    });
+                })
+                .then(userInfo => {
+                    return getUserById(mainInfo.userId)
+                })
+                .then(userInfo => {
+                    mainInfo.userDocInfo = userInfo.result.user;
+
+                    return new Promise((resolve, reject) => {
+                        Helper.balanceUpdateInfo(mainInfo)
+                            .then(resolve)
+                            .catch(reject)
+                    });
+                })
+                .then(res => {
+                    let documentInfo = {};
+                    documentInfo.collectionName = "users";
+                    documentInfo.filter = {"userId" : mainInfo.userDocInfo.userId};
+                    documentInfo.newValue = res.updateInfo;
+
+                    let historyInfo = {};
+                    historyInfo.collectionName = "balanceHistory";
+                    historyInfo.documentInfo = {
+                        type: "Increase Balance",
+                        userId: mainInfo.userDocInfo.userId,
+                        currency: res.currency,
+                        rate: res.rate,
+                        amount: data.body.amount,
+                        createdAt: Math.floor(Date.now() / 1000)
+                    };
+
+                    return new Promise((resolve, reject) => {
+                        Promise.all([
+                            mongoRequests.updateDocument(documentInfo),
+                            mongoRequests.insertDocument(historyInfo)
+                        ])
+                            .then(doc => {
+                               resolve({
+                                    code: 200,
+                                    status: "success",
+                                    message: "UserInfo successfully updated!"
+                                })
+                            })
+                            .catch(err => {
+                                // winston.log('error', err);
+
+                                reject({
+                                    code: 400,
+                                    status: "error",
+                                    message: "Ups: Something went wrong:("
+                                })
+                            })
+                    })
+                })
+                .then(resolve)
+                .catch(reject)
+        })
     },
 
-    decreaseBalance: data => {
-        console.log(data);
+    /**
+     * Use balance By Admin
+     * @param data
+     * @returns {Promise<any>}
+     */
+    useBalance: data => {
+        const mainInfo = {};
+        mainInfo.headers = data.headers;
+        mainInfo.body = data.body;
+        mainInfo.userId = data.params.userId.toString();
+
+        const updatableFields = {
+            currency: {
+                name: "Currency",
+                type: "text",
+                minLength: 3,
+                maxLength: 3,
+                required: true
+            },
+            amount: {
+                name: "Amount",
+                type: "number",
+                required: true
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            Helper.getTokenInfo(mainInfo.headers.authorization)
+                .then(res => {
+                    if ("admin" !== res.role) {
+                        reject({
+                            code: 401,
+                            status: "error",
+                            message: "You don't dave permission to do this action!"
+                        });
+                    }
+
+                    mainInfo.role = res.role;
+                    return mainInfo;
+                })
+                .then(mainInfo => {
+                    return new Promise((resolve, reject) => {
+                        Helper.validateData(updatableFields, mainInfo.body)
+                            .then(resolve)
+                            .catch(reject)
+                    });
+                })
+                .then(userInfo => {
+                    return getUserById(mainInfo.userId)
+                })
+                .then(userInfo => {
+                    mainInfo.userDocInfo = userInfo.result.user;
+
+                    return new Promise((resolve, reject) => {
+                        Helper.useBalanceByAdmin(mainInfo)
+                            .then(resolve, reject)
+                    });
+                })
+                .then(res => {
+                    let documentInfo = {};
+                    documentInfo.collectionName = "users";
+                    documentInfo.filter = {"userId" : mainInfo.userDocInfo.userId};
+                    documentInfo.newValue = res.info.updateInfo;
+
+                    let historyInfo = {};
+                    historyInfo.collectionName = "balanceHistory";
+                    historyInfo.documentInfo = {
+                        type: "Use Balance",
+                        userId: mainInfo.userDocInfo.userId,
+                        currency: res.info.currency,
+                        rate: res.info.rate,
+                        amount: data.body.amount,
+                        createdAt: Math.floor(Date.now() / 1000)
+                    };
+
+                    return new Promise((resolve, reject) => {
+                        Promise.all([
+                            mongoRequests.updateDocument(documentInfo),
+                            mongoRequests.insertDocument(historyInfo)
+                        ])
+                            .then(doc => {
+                                resolve({
+                                    code: 200,
+                                    status: "success",
+                                    message: "UserInfo successfully updated!"
+                                })
+                            })
+                            .catch(err => {
+                                // winston.log('error', err);
+
+                                reject({
+                                    code: 400,
+                                    status: "error",
+                                    message: "Ups: Something went wrong:("
+                                })
+                            })
+                    })
+                })
+                .then(resolve)
+                .catch(reject)
+        })
     }
 
 };
@@ -664,6 +857,60 @@ function getUsers(filter) {
  *
  * @param body
  */
-function updateUserByAdmin(body) {
-    console.log(body);
+function updateUserByAdmin(usedId, updateCriteria) {
+    let documentInfo = {};
+    documentInfo.collectionName = "users";
+    documentInfo.filter = {"userId" : usedId};
+    documentInfo.newValue = {$set: updateCriteria};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(doc => {
+                resolve({
+                    code: 200,
+                    status: "success",
+                    message: "UserInfo successfully updated!"
+                })
+            })
+            .catch(err => {
+                reject({
+                    code: 400,
+                    status: "error",
+                    message: "Ups: Something went wrong:("
+                })
+            })
+    })
+}
+
+/**
+ *
+ * @param userId
+ * @returns {Promise<any>}
+ */
+function getUserById(userId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "users";
+    documentInfo.filter = {userId: userId};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(doc => {
+                resolve({
+                    code: 200,
+                    status: "success",
+                    result: {
+                        user: doc
+                    }
+                })
+            })
+            .catch(err => {
+                winston('error', err);
+
+                reject({
+                    code: 400,
+                    status: "error",
+                    message: "Ups: Something went wrong:("
+                })
+            })
+    });
 }

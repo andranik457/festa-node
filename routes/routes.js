@@ -58,7 +58,7 @@ router.post("/api/user/log-out", (req, res) => {
 });
 
 /**
- *
+ * Edi user personal info by usr
  */
 router.post("/api/user/edit", (req, res) => {
     userFunc.edit(req)
@@ -92,6 +92,9 @@ router.get("/user/verify", (req, res) => {
         })
 });
 
+/**
+ * Get Users by filter
+ */
 router.post("/api/user/get-users", (req, res) => {
     userFunc.getUsers(req)
         .then(result => {
@@ -105,6 +108,9 @@ router.post("/api/user/get-users", (req, res) => {
         })
 });
 
+/**
+ *  Edit user info by admin
+ */
 router.post("/api/user/update-user/:userId", (req, res) => {
     userFunc.updateUserByAdmin(req)
         .then(result => {
@@ -118,6 +124,37 @@ router.post("/api/user/update-user/:userId", (req, res) => {
         })
 });
 
+/**
+ * Increace balance by admin
+ */
+router.post("/api/user/increase-balance/:userId", (req, res) => {
+    userFunc.increaseBalance(req)
+        .then(result => {
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+            //
+            res.status(err.code);
+            return res.json(err);
+        })
+});
+
+/**
+ * Use user balance by admin
+ */
+router.post("/api/user/use-balance/:userId", (req, res) => {
+    userFunc.useBalance(req)
+        .then(result => {
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+            //
+            res.status(err.code);
+            return res.json(err);
+        })
+});
 
 /**
  * Not Found API

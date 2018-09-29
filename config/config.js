@@ -10,6 +10,8 @@ const config = {
     mode : "local",
 
     local: {
+        httpUrl: "local-festa.com",
+
         port: parseInt(process.env.PORT) || 3015,
 
         hostname : "127.0.0.1",

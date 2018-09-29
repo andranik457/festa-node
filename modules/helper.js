@@ -19,7 +19,9 @@ const helper = {
     validateData,
     getUserUpdateableFieldsByRole,
     generateValidationFields,
-    generateUpdateInfo
+    generateUpdateInfo,
+    balanceUpdateInfo,
+    useBalanceByAdmin
 };
 
 /**
@@ -107,9 +109,7 @@ function getVerificationToken(data) {
  * @returns {Promise<any>}
  */
 function sendVerificationEmail(data) {
-    console.log("local-festa.com/user/verify?token="+ data.verificationToken + "&userId="+ data.userId);
-
-    let emailContent = "local-festa.com/user/verify?token="+ data.verificationToken + "&userId="+ data.userId;
+    let emailContent = config[process.env.NODE_ENV].httpUrl +"/user/verify?token="+ data.verificationToken + "&userId="+ data.userId;
 
     let documentInfo = {};
     documentInfo.collectionName = "processesEmail";
@@ -153,6 +153,8 @@ function getNewUserId(data) {
  * @returns {Promise<any>}
  */
 function validateData(validationFields, data) {
+    // console.log(validationFields, data);
+
     // const latinLettersValidate = /^[^-\s][a-zA-Z\s]*[^\s]+$/;
     const latinLettersValidate = /^[a-zA-Z]+[a-zA-Z ]+[a-zA-Z]+$/;
     const emailValidate = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -161,6 +163,7 @@ function validateData(validationFields, data) {
     const passwordValidateNumeric = /(?=.*[0-9])/;
     const passwordValidateSpecialCharacter = /(?=.*[!@#$%^&*()])/;
     // const passwordValidateLength = new RegRxp("(?=.{8,})");
+    const numberValidate = /^[0-9]+$/;
 
     let errorMessage = {};
 
@@ -201,6 +204,18 @@ function validateData(validationFields, data) {
                     }
                 }
 
+                if ("double" === validationFields[field].type) {
+                    if (!numberValidate.test(data[field])) {
+                        errorMessage[field] = "Please check "+ validationFields[field].name + "and try again!";
+                    }
+                }
+
+                if ("number" === validationFields[field].type) {
+                    if (!numberValidate.test(data[field])) {
+                        errorMessage[field] = validationFields[field].name + "can contain only numbers";
+                    }
+                }
+
             }
 
             // Min Length
@@ -235,7 +250,7 @@ function validateData(validationFields, data) {
             resolve(errorMessage);
         }
         else {
-            // winston('error', errorMessage)
+            // winston.log('error', errorMessage);
 
             reject({
                 code: 400,
@@ -372,6 +387,122 @@ async function generateUpdateInfo(data) {
     });
 
     return updateCriteria;
+}
+
+async function balanceUpdateInfo(data) {
+    let payForCredit = 0;
+    let payForBalance = 0;
+
+    let balanceInfo = data.userDocInfo.balance;
+    let reqInfo = data.body;
+
+    let amountInfo = await checkAmount(reqInfo.currency, reqInfo.amount);
+
+    if (balanceInfo.currentCredit > 0) {
+        if (amountInfo.amount > balanceInfo.currentCredit) {
+            payForCredit = balanceInfo.currentCredit;
+            payForBalance = amountInfo.amount - payForCredit;
+        }
+        else {
+            payForCredit = amountInfo.amount;
+        }
+    }
+    else {
+        payForBalance = amountInfo.amount;
+    }
+
+    let updateBalanceInfo = {
+        currency: amountInfo.currency,
+        rate: amountInfo.rate,
+        updateInfo: {$inc: {
+            "balance.currentBalance": payForBalance,
+            "balance.currentCredit": -payForCredit
+        }}
+    };
+
+    return updateBalanceInfo;
+}
+
+async function checkAmount(currency, amount) {
+    const currencyInfo = await getCurrencyInfo();
+
+    let amountInfo = {};
+
+    switch (currency) {
+        case "AMD":
+            amountInfo = {
+                amount: currencyInfo.amd * amount,
+                currency: "AMD",
+                rate: currencyInfo.amd
+            };
+            break;
+        case "USD":
+            amountInfo = {
+                amount: currencyInfo.usd * amount,
+                currency: "USD",
+                rate: currencyInfo.usd
+            };
+            break;
+        default: return  null
+    }
+
+    return amountInfo;
+}
+
+function getCurrencyInfo() {
+    return {
+        amd: 1,
+        usd: 483
+    }
+}
+
+async function useBalanceByAdmin(data) {
+    let getFromCredit = 0;
+    let getFromBalance = 0;
+
+    let currentBalance = data.userDocInfo.balance.currentBalance;
+    let currentCredit = data.userDocInfo.balance.currentCredit;
+    let maxCredit = data.userDocInfo.balance.maxCredit;
+
+    let reqInfo = data.body;
+
+    // get amount by default currency
+    let amountInfo = await checkAmount(reqInfo.currency, reqInfo.amount);
+
+    return new Promise((resolve, reject) => {
+        if (amountInfo.amount > currentBalance) {
+            getFromBalance = currentBalance;
+
+            if ((amountInfo.amount - getFromBalance) > (maxCredit - currentCredit)) {
+                reject({
+                    code: 400,
+                    status: "error",
+                    message: "Your request cannot be completed: user balance less than you request!"
+                })
+            }
+            else {
+                getFromCredit = amountInfo.amount - getFromBalance;
+            }
+        }
+        else {
+            getFromBalance = amountInfo.amount;
+        }
+
+        resolve({
+            code: 200,
+            status: "success",
+            info: {
+                currency: amountInfo.currency,
+                rate: amountInfo.rate,
+                updateInfo: {
+                    $inc: {
+                        "balance.currentBalance": -getFromBalance,
+                        "balance.currentCredit": getFromCredit
+                    }
+                }
+            }
+        })
+    });
 }
 
 module.exports = helper;
