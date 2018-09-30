@@ -156,6 +156,19 @@ router.post("/api/user/use-balance/:userId", (req, res) => {
         })
 });
 
+router.post("/api/user/balance-history/:userId", (req, res) => {
+    userFunc.getBalanceHistory(req)
+        .then(result => {
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+            //
+            res.status(err.code);
+            return res.json(err);
+        })
+});
+
 /**
  * Not Found API
  */

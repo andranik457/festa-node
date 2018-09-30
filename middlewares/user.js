@@ -329,7 +329,14 @@ const user = {
                 name: "Amount",
                 type: "number",
                 required: true
-            }
+            },
+            description: {
+                name: "Description",
+                type: "text",
+                minLength: 3,
+                maxLength: 128,
+                required: true
+            },
         };
 
         return new Promise((resolve, reject) => {
@@ -379,6 +386,7 @@ const user = {
                         currency: res.currency,
                         rate: res.rate,
                         amount: data.body.amount,
+                        description: data.body.description,
                         createdAt: Math.floor(Date.now() / 1000)
                     };
 
@@ -433,6 +441,13 @@ const user = {
                 name: "Amount",
                 type: "number",
                 required: true
+            },
+            description: {
+                name: "Description",
+                type: "text",
+                minLength: 3,
+                maxLength: 128,
+                required: true
             }
         };
 
@@ -482,6 +497,7 @@ const user = {
                         currency: res.info.currency,
                         rate: res.info.rate,
                         amount: data.body.amount,
+                        description: data.body.description,
                         createdAt: Math.floor(Date.now() / 1000)
                     };
 
@@ -511,6 +527,36 @@ const user = {
                 .then(resolve)
                 .catch(reject)
         })
+    },
+
+    /**
+     *
+     * @param data
+     * @returns {Promise<any>}
+     */
+    getBalanceHistory: data => {
+        const mainInfo = {};
+        mainInfo.headers = data.headers;
+        mainInfo.body = data.body;
+        mainInfo.userId = data.params.userId.toString();
+
+        return new Promise((resolve, reject) => {
+            Helper.getTokenInfo(mainInfo.headers.authorization)
+                .then(res => {
+                    if ("admin" !== res.role) {
+                        reject({
+                            code: 401,
+                            status: "error",
+                            message: "You don't dave permission to do this action!"
+                        });
+                    }
+
+                    return mainInfo;
+                })
+                .then(getBalanceHistory)
+                .then(resolve)
+                .catch(reject)
+        });
     }
 
 };
@@ -665,7 +711,6 @@ function loginUser(data) {
             })
     });
 }
-
 
 /**
  *
@@ -913,4 +958,47 @@ function getUserById(userId) {
                 })
             })
     });
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
+function getBalanceHistory(data) {
+    let documentInfo = {};
+    documentInfo.collectionName = "balanceHistory";
+    documentInfo.filter = {"userId" : data.userId};
+    documentInfo.option = {sort: {createdAt: -1}};
+
+    let historyInfo = [];
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(res => {
+                _.each(res, value => {
+                    historyInfo.push({
+                        type: value.type || "",
+                        rate: value.rate || "",
+                        amount: value.amount || 0,
+                        description: value.description || "",
+                        createdAt: value.createdAt || 0
+                    });
+                });
+
+                resolve({
+                    code: 200,
+                    status: "success",
+                    result: historyInfo
+                })
+            })
+            .catch(err => {
+                winston.log("error", err);
+
+                reject({
+                    code: 400,
+                    status: "error",
+                    message: "Ups: Something went wrong:("
+                })
+            })
+    })
 }
