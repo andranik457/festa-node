@@ -164,6 +164,7 @@ function validateData(validationFields, data) {
     const passwordValidateSpecialCharacter = /(?=.*[!@#$%^&*()])/;
     // const passwordValidateLength = new RegRxp("(?=.{8,})");
     const numberValidate = /^[0-9]+$/;
+    const phoneNumberValidate = /^[+]+[0-9]+$/;
 
     let errorMessage = {};
 
@@ -204,15 +205,15 @@ function validateData(validationFields, data) {
                     }
                 }
 
-                if ("double" === validationFields[field].type) {
-                    if (!numberValidate.test(data[field])) {
-                        errorMessage[field] = "Please check "+ validationFields[field].name + "and try again!";
+                if ("phoneNumber" === validationFields[field].type) {
+                    if (!phoneNumberValidate.test(data[field])) {
+                        errorMessage[field] = validationFields[field].name + " need to start with + and contain ony numbers!";
                     }
                 }
 
                 if ("number" === validationFields[field].type) {
                     if (!numberValidate.test(data[field])) {
-                        errorMessage[field] = validationFields[field].name + "can contain only numbers";
+                        errorMessage[field] = validationFields[field].name + " can contain only numbers";
                     }
                 }
 

@@ -26,6 +26,25 @@ router.post("/user/register", (req, res) => {
 });
 
 /**
+ * Verify user registration
+ */
+router.get("/user/verify", (req, res) => {
+    let parts = url.parse(req.url, true);
+    let query = parts.query;
+
+    userFunc.verifyUser(query)
+        .then(result => {
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+
+            res.status(err.code);
+            return res.json(err);
+        })
+});
+
+/**
  * User Login
  */
 router.post("/user/login", (req, res) => {
@@ -45,52 +64,33 @@ router.post("/user/login", (req, res) => {
  * User Log Out
  */
 router.post("/api/user/log-out", (req, res) => {
-    userFunc.logOut(req.body)
+    userFunc.logOut(req)
         .then(result => {
             res.send(result)
         })
         .catch(err => {
             winston.log("error", err);
             //
-            res.status(err.error.code);
-            return res.json(err.error);
+            res.status(err.code);
+            return res.json(err);
         })
 });
 
 /**
  * Edi user personal info by usr
  */
-router.post("/api/user/edit", (req, res) => {
-    userFunc.edit(req)
-        .then(result => {
-            res.send(result)
-        })
-        .catch(err => {
-            winston.log("error", err);
-            //
-            res.status(err.code);
-            return res.json(err);
-        })
-});
-
-/**
- * Verify user registration
- */
-router.get("/user/verify", (req, res) => {
-    let parts = url.parse(req.url, true);
-    let query = parts.query;
-
-    userFunc.verifyUser(query)
-        .then(result => {
-            res.send(result)
-        })
-        .catch(err => {
-            winston.log("error", err);
-
-            res.status(err.code);
-            return res.json(err);
-        })
-});
+// router.post("/api/user/edit", (req, res) => {
+//     userFunc.edit(req)
+//         .then(result => {
+//             res.send(result)
+//         })
+//         .catch(err => {
+//             winston.log("error", err);
+//             //
+//             res.status(err.code);
+//             return res.json(err);
+//         })
+// });
 
 /**
  * Get Users by filter
@@ -114,6 +114,7 @@ router.post("/api/user/get-users", (req, res) => {
 router.post("/api/user/update-user/:userId", (req, res) => {
     userFunc.updateUserByAdmin(req)
         .then(result => {
+            console.log(result);
             res.send(result)
         })
         .catch(err => {
@@ -156,6 +157,9 @@ router.post("/api/user/use-balance/:userId", (req, res) => {
         })
 });
 
+/**
+ * User balance change history
+ */
 router.post("/api/user/balance-history/:userId", (req, res) => {
     userFunc.getBalanceHistory(req)
         .then(result => {

@@ -39,16 +39,14 @@ const user = {
             },
             vat: {
                 name: "VAT",
-                type: "text",
-                format: "latin",
+                type: "number",
                 minLength: 3,
                 maxLength: 64,
                 required: true
             },
             tin: {
                 name: "TIN",
-                type: "text",
-                format: "latin",
+                type: "number",
                 minLength: 3,
                 maxLength: 64,
                 required: true
@@ -63,7 +61,7 @@ const user = {
             },
             phone: {
                 name: "Phone Number",
-                type: "text",
+                type: "phoneNumber",
                 minLength: 3,
                 length: 64,
                 required: true
@@ -79,6 +77,20 @@ const user = {
                 name: "Password",
                 type: "password",
                 minLength: 8,
+                length: 64,
+                required: true
+            },
+            country: {
+                name: "Country",
+                type: "text",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            city: {
+                name: "City",
+                type: "text",
+                minLength: 3,
                 length: 64,
                 required: true
             }
@@ -162,7 +174,14 @@ const user = {
      * @param data
      */
     logOut: data => {
-        console.log(data);
+        const reqHeaders = data.headers;
+
+        return new Promise((resolve, reject) => {
+            Helper.getTokenInfo(reqHeaders.authorization)
+                .then(unsetUserToken)
+                .then(resolve)
+                .catch(reject)
+        })
     },
 
     /**
@@ -334,7 +353,7 @@ const user = {
                 name: "Description",
                 type: "text",
                 minLength: 3,
-                maxLength: 128,
+                maxLength: 512,
                 required: true
             },
         };
@@ -446,7 +465,7 @@ const user = {
                 name: "Description",
                 type: "text",
                 minLength: 3,
-                maxLength: 128,
+                maxLength: 512,
                 required: true
             }
         };
@@ -997,6 +1016,31 @@ function getBalanceHistory(data) {
                 reject({
                     code: 400,
                     status: "error",
+                    message: "Ups: Something went wrong:("
+                })
+            })
+    })
+}
+
+function unsetUserToken(data) {
+    let documentInfo = {};
+    documentInfo.collectionName = "users";
+    documentInfo.filter = {"userId" : data.userId};
+    documentInfo.newValue = {'$set': {token: ""}};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(res => {
+                resolve({
+                    code: 200,
+                    status: "Success",
+                    message: "You have successfully logged out!"
+                })
+            })
+            .catch(err => {
+                reject({
+                    code: 400,
+                    status: "Error",
                     message: "Ups: Something went wrong:("
                 })
             })
