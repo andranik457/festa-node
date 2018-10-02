@@ -1,14 +1,14 @@
 {
-  "name": "sample-cv",
-  "version": "1.0.0",
-  "description": "sample-cv API",
+  "name": "Festa API",
+  "version": "1.0.3",
+  "description": "festa node API",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/andranik457/sample-cv-node.git"
+    "url": "git+https://github.com/andranik457/festa-node.git"
   },
   "keywords": [
     "nodeJs",
@@ -17,9 +17,9 @@
   "author": "Andranik Aslanyan",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/andranik457/sample-cv-node/issues"
+    "url": "https://github.com/andranik457/festa-node/issues"
   },
-  "homepage": "https://github.com/andranik457/sample-cv-node#readme",
+  "homepage": "https://github.com/andranik457/festa-node#readme",
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.3",
