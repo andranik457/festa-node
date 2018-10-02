@@ -7,8 +7,8 @@ const os = require("os");
 
 const config = {
     
-    mode : "local",
-    // mode : "production",
+    // mode : "local",
+    mode : "production",
 
     local: {
         httpUrl: "local-festa.com",
