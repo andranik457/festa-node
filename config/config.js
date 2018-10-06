@@ -33,7 +33,7 @@ const config = {
     },
 
     production: {
-        httpUrl: "http://festa.smartsoft.am:8282/",
+        httpUrl: "festa.smartsoft.am",
 
         port: parseInt(process.env.PORT) || 3015,
 

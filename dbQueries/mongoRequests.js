@@ -100,6 +100,19 @@ const mongoQueries = {
             databaseFesta.collection(data.collectionName).findOneAndUpdate(data.filter, data.newValue)
                 .then(resolve, reject)
         });
+    },
+
+    /**
+     *
+     * @param data
+     * @returns {Promise<any>}
+     */
+    aggregate : data => {
+        return new Promise((resolve, reject) => {
+            databaseFesta.collection(data.collectionName).aggregate(data.filter).toArray((err, result) => {
+                err ? reject(err) : resolve(result);
+            })
+        });
     }
 
 };
