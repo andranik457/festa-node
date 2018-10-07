@@ -106,7 +106,7 @@ const user = {
                 .then(Helper.getVerificationToken)
                 .then(saveUser)
                 .then(data => {
-                    let verificationUrl = "local-festa.com/user/verify?token="+ data.verificationToken + "&userId="+ data.userId;
+                    let verificationUrl = config[process.env.NODE_ENV].httpUrl +"/user/verify?token="+ data.verificationToken + "&userId="+ data.userId;
 
                     resolve({
                         code: 200,

@@ -70,6 +70,11 @@ const mongoQueries = {
         });
     },
 
+    /**
+     *
+     * @param data
+     * @returns {Promise<any>}
+     */
     findDocuments : data => {
         return new Promise((resolve, reject) => {
             databaseFesta.collection(data.collectionName).find(data.filter, data.projection, data.option).toArray(function(err, result) {
