@@ -3,11 +3,13 @@
  * Module Dependencies
  */
 
-const MongoClient = require("mongodb").MongoClient;
-const fs = require('fs');
-const mongo = require("mongodb");
-const winston = require("winston");
-const config = require("../config/config");
+const MongoClient   = require("mongodb").MongoClient;
+const fs            = require('fs');
+const mongo         = require("mongodb");
+const _             = require("underscore");
+const winston       = require("winston");
+const config        = require("../config/config");
+const errTexts      = require("../texts/texts");
 
 /**
  * MongoDB db:Festa Connection
@@ -65,7 +67,7 @@ const mongoQueries = {
      */
     findDocument : data => {
         return new Promise((resolve, reject) => {
-            databaseFesta.collection(data.collectionName).findOne(data.filter, null, {lean : true})
+            databaseFesta.collection(data.collectionName).findOne(data.filter, data.projectionInfo)
                 .then(resolve, reject)
         });
     },
@@ -77,7 +79,7 @@ const mongoQueries = {
      */
     findDocuments : data => {
         return new Promise((resolve, reject) => {
-            databaseFesta.collection(data.collectionName).find(data.filter, data.projection, data.option).toArray(function(err, result) {
+            databaseFesta.collection(data.collectionName).find(data.filterInfo, data.projectionInfo, data.optionInfo).toArray(function(err, result) {
                 err ? reject(err) : resolve(result);
             })
         });
@@ -102,7 +104,7 @@ const mongoQueries = {
      */
     updateDocument : data => {
         return new Promise((resolve, reject) => {
-            databaseFesta.collection(data.collectionName).findOneAndUpdate(data.filter, data.newValue)
+            databaseFesta.collection(data.collectionName).findOneAndUpdate(data.filterInfo, data.updateInfo)
                 .then(resolve, reject)
         });
     },
@@ -118,7 +120,22 @@ const mongoQueries = {
                 err ? reject(err) : resolve(result);
             })
         });
-    }
+    },
+
+    findToken : (bearer, next) => {
+        let filter = {token: bearer};
+
+        databaseFesta.collection("users").findOne(filter)
+            .then(doc => {
+                if (_.isEmpty(doc)) {
+                    return next({
+                        code: 401,
+                        status: "error",
+                        message: errTexts.tokenNotFound});
+                }
+                return next(null, doc);
+            }, err => next(err));
+    },
 
 };
 

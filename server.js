@@ -3,55 +3,54 @@
  * Module dependencies
  */
 
-const app = require("express")();
-// const logger = require("morgan");
-const winston = require("winston");
-// const bodyParser = require('body-parser');
-const config = require("./config/config");
+const app           = require("express")();
+const winston       = require("winston");
+const config        = require("./config/config");
 process.env.NODE_ENV = config.mode;
+const bodyParser    = require("body-parser");
+const expressJwt    = require("express-jwt");
+const secret        = config[process.env.NODE_ENV].jwtSecret;
+//
+const auth          = require("./middlewares/auth");
+//
+const flights       = require("./routes/flights");
+const routes        = require("./routes/routes");
 
-const routes = require("./routes/routes");
 
 /**
  * Express middleware
  */
 
-var bodyParser = require('body-parser');
-app.use(bodyParser.json({limit: '50mb'}));
+app.use("/api", expressJwt({secret: secret}));
+// app.use(bodyParser.json({type : "*/*", limit: '2mb'}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
-
-
-// app.use(bodyParser.urlencoded({extended : false}));
-app.use(bodyParser.text({type : "application/x-www-form-urlencoded"}));
-// app.use(bodyParser.json({limit: '512mb'}));
-// app.use(bodyParser.urlencoded({limit: '512mb', extended: true}));
-// app.use(bodyParser.json({limit: '50mb', type: 'application/json'}));
-// app.use(bodyParser());
-app.use(bodyParser.urlencoded({ extended: false }))
-
-// app.use(bodyParser.urlencoded({
-//     parameterLimit: 100000,
-//     limit: '512mb',
-//     extended: true
-// }));
-
-// app.use(bodyParser.json());
-// app.use(logger("dev"));
-app.use('/', routes);
+app.use(bodyParser.text({type : "application/x-www-form-urlencoded", limit: '8mb'}));
 
 /**
- * error handlers
- * development error handler
+ * Routes
  */
+app.use("/api", auth.isAuth);
+// app.use("/api/users", makeLowerCase);
 
+/**
+ * Routes
+ */
+app.use("/api/flights", flights);
+app.use("/", routes);
 
 /**
  * production error handler
  */
-
 app.use((err, req, res, next) => {
-    res.status(err.status || 500);
-res.json({message : err.message, error : {}});
+    res.status(err.code || 500);
+
+    console.log(err);
+
+    res.json({
+        code: err.code || 500,
+        status : err.status,
+        message : err.message
+    });
 });
 
 /**

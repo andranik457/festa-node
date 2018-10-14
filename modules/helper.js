@@ -21,7 +21,10 @@ const helper = {
     generateValidationFields,
     generateUpdateInfo,
     balanceUpdateInfo,
-    useBalanceByAdmin
+    useBalanceByAdmin,
+    calculateFlightDuration,
+    getEditableFields,
+    getEditableFieldsValues
 };
 
 /**
@@ -152,8 +155,9 @@ function getNewUserId(data) {
  * @param data
  * @returns {Promise<any>}
  */
-function validateData(validationFields, data) {
-    // console.log(validationFields, data);
+function validateData(data) {
+    const validationFields = data.editableFields;
+    const checkData = data.editableFieldsValues;
 
     // const latinLettersValidate = /^[^-\s][a-zA-Z\s]*[^\s]+$/;
     const latinLettersValidate = /^[a-zA-Z]+[a-zA-Z ]+[a-zA-Z]+$/;
@@ -172,7 +176,7 @@ function validateData(validationFields, data) {
         for (let field in validationFields) {
 
             // Required
-            if (validationFields[field].required && (typeof data[field] === "undefined")) {
+            if (validationFields[field].required && (typeof checkData[field] === "undefined")) {
                 errorMessage[field] = validationFields[field].name + " is required!";
                 continue;
             }
@@ -182,7 +186,7 @@ function validateData(validationFields, data) {
 
                 // email
                 if ("email" === validationFields[field].type) {
-                    if (!emailValidate.test(data[field])) {
+                    if (!emailValidate.test(checkData[field])) {
                         errorMessage[field] = "Please enter a valid email address."
                         continue;
                     }
@@ -190,29 +194,29 @@ function validateData(validationFields, data) {
 
                 // Password
                 if ("password" === validationFields[field].type) {
-                    if (!passwordValidateLowercase.test(data[field])) {
+                    if (!passwordValidateLowercase.test(checkData[field])) {
                         errorMessage[field] = "Password must contain at least 1 lowercase alphabetical character";
                     }
-                    else if (!passwordValidateUppercase.test(data[field])) {
+                    else if (!passwordValidateUppercase.test(checkData[field])) {
                         errorMessage[field] = "Password must contain at least 1 uppercase alphabetical character";
                     }
 
-                    else if (!passwordValidateNumeric.test(data[field])) {
+                    else if (!passwordValidateNumeric.test(checkData[field])) {
                         errorMessage[field] = "Password must contain at least 1 numeric character";
                     }
-                    else if (!passwordValidateSpecialCharacter.test(data[field])) {
+                    else if (!passwordValidateSpecialCharacter.test(checkData[field])) {
                         errorMessage[field] = "Password must contain at least one special character";
                     }
                 }
 
                 if ("phoneNumber" === validationFields[field].type) {
-                    if (!phoneNumberValidate.test(data[field])) {
+                    if (!phoneNumberValidate.test(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " need to start with + and contain ony numbers!";
                     }
                 }
 
                 if ("number" === validationFields[field].type) {
-                    if (!numberValidate.test(data[field])) {
+                    if (!numberValidate.test(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " can contain only numbers";
                     }
                 }
@@ -221,7 +225,7 @@ function validateData(validationFields, data) {
 
             // Min Length
             if (typeof validationFields[field].minLength !== "undefined") {
-                if (data[field].length < validationFields[field].minLength) {
+                if (checkData[field].length < validationFields[field].minLength) {
                     errorMessage[field] = validationFields[field].name + " need to have at last " + validationFields[field].minLength + " characters.";
                     continue;
                 }
@@ -229,7 +233,7 @@ function validateData(validationFields, data) {
 
             // Max Length
             if (typeof validationFields[field].maxLength !== "undefined") {
-                if (data[field].length > validationFields[field].maxLength) {
+                if (checkData[field].length > validationFields[field].maxLength) {
                     errorMessage[field] = validationFields[field].name + " need to have max " + validationFields[field].maxLength + " characters.";
                     continue;
                 }
@@ -238,7 +242,7 @@ function validateData(validationFields, data) {
             // Format
             if (typeof validationFields[field].format !== "undefined") {
                 if ("latin" === validationFields[field].format) {
-                    if (!latinLettersValidate.test(data[field])) {
+                    if (!latinLettersValidate.test(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " can contain only latin letters";
                         continue;
                     }
@@ -248,7 +252,7 @@ function validateData(validationFields, data) {
         }
 
         if (_.isEmpty(errorMessage)) {
-            resolve(errorMessage);
+            resolve(data);
         }
         else {
             // winston.log('error', errorMessage);
@@ -504,6 +508,55 @@ async function useBalanceByAdmin(data) {
             }
         })
     });
+}
+
+async function calculateFlightDuration(data) {
+
+    let flightDuration = Math.abs(data.body.endDate - data.body.startDate);
+
+    data.body.duration = flightDuration;
+
+    return data;
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
+async function getEditableFields(data) {
+    const possibleFields = data.possibleForm;
+    const requestFields = data.body;
+
+    let editableFields = {};
+
+    _.each(requestFields, (value, key) => {
+        if (_.has(possibleFields, key)) {
+            editableFields[key] = possibleFields[key]
+        }
+    });
+
+    data.editableFields = editableFields;
+    return data;
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
+async function getEditableFieldsValues(data) {
+    const editableFields = data.editableFields;
+    const requestFields = data.body;
+
+    let editableFieldsValues = {};
+
+    _.each(editableFields, (value, key) => {
+        editableFieldsValues[key] = requestFields[key];
+    });
+
+    data.editableFieldsValues = editableFieldsValues
+    return data;
 }
 
 module.exports = helper;
