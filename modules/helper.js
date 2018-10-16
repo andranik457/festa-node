@@ -9,12 +9,13 @@ const mongoRequests = require("../dbQueries/mongoRequests");
 const config        = require("../config/config");
 const crypto        = require('crypto');
 const jwt           = require("jsonwebtoken");
+const successTexts  = require("../texts/successTexts");
+const errorTexts    = require("../texts/errorTexts");
 
 const helper = {
     getTokenInfo,
     decodeToken,
     getVerificationToken,
-    sendVerificationEmail,
     getNewUserId,
     validateData,
     getUserUpdateableFieldsByRole,
@@ -96,7 +97,7 @@ function getVerificationToken(data) {
     return new Promise((resolve, reject) => {
         crypto.randomBytes(128, function (err, buffer) {
             if (err) {
-                reject("We can't create verification token");
+                reject(errorTexts.verificationToken);
             }
             else {
                 data.verificationToken = buffer.toString('hex');
@@ -111,47 +112,25 @@ function getVerificationToken(data) {
  * @param data
  * @returns {Promise<any>}
  */
-function sendVerificationEmail(data) {
-    let emailContent = config[process.env.NODE_ENV].httpUrl +"/user/verify?token="+ data.verificationToken + "&userId="+ data.userId;
-
-    let documentInfo = {};
-    documentInfo.collectionName = "processesEmail";
-    documentInfo.documentInfo = {
-        email: data.email,
-        content: Buffer.from(emailContent).toString('base64')
-    };
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.insertDocument(documentInfo)
-            .then(insertRes => {
-                insertRes.insertedCount === 1 ? resolve(data) : reject("Some error occurred we can't send email to this user!")
-            })
-    });
-}
-
-/**
- *
- * @param data
- * @returns {Promise<any>}
- */
 function getNewUserId(data) {
     let documentInfo = {};
     documentInfo.collectionName = "autoincrement";
-    documentInfo.filter = {"type" : "users"};
-    documentInfo.newValue = {$inc: {sequenceId: 1}};
+    documentInfo.filterInfo = {"type" : "users"};
+    documentInfo.updateInfo = {$inc: {sequenceId: 1}};
 
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(docCount => {
                 data.userId = docCount.value.sequenceId;
-                docCount > 0 ? reject("Some error occurred in process to creating new id for user!") : resolve(data)
+                docCount > 0
+                    ? reject(errorTexts.userNewId)
+                    : resolve(data)
             })
     });
 }
 
 /**
  *
- * @param validationFields
  * @param data
  * @returns {Promise<any>}
  */
@@ -159,14 +138,12 @@ function validateData(data) {
     const validationFields = data.editableFields;
     const checkData = data.editableFieldsValues;
 
-    // const latinLettersValidate = /^[^-\s][a-zA-Z\s]*[^\s]+$/;
     const latinLettersValidate = /^[a-zA-Z]+[a-zA-Z ]+[a-zA-Z]+$/;
     const emailValidate = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     const passwordValidateLowercase = /^(?=.*[a-z])/;
     const passwordValidateUppercase = /(?=.*[A-Z])/;
     const passwordValidateNumeric = /(?=.*[0-9])/;
     const passwordValidateSpecialCharacter = /(?=.*[!@#$%^&*()])/;
-    // const passwordValidateLength = new RegRxp("(?=.{8,})");
     const numberValidate = /^[0-9]+$/;
     const phoneNumberValidate = /^[+]+[0-9]+$/;
 
@@ -255,7 +232,7 @@ function validateData(data) {
             resolve(data);
         }
         else {
-            // winston.log('error', errorMessage);
+            winston.log('error', errorMessage);
 
             reject({
                 code: 400,
@@ -425,7 +402,9 @@ async function balanceUpdateInfo(data) {
         }}
     };
 
-    return updateBalanceInfo;
+    data.balanceInfo = updateBalanceInfo;
+
+    return data;
 }
 
 async function checkAmount(currency, amount) {
@@ -493,20 +472,19 @@ async function useBalanceByAdmin(data) {
             getFromBalance = amountInfo.amount;
         }
 
-        resolve({
-            code: 200,
-            status: "success",
-            info: {
-                currency: amountInfo.currency,
-                rate: amountInfo.rate,
-                updateInfo: {
-                    $inc: {
-                        "balance.currentBalance": -getFromBalance,
-                        "balance.currentCredit": getFromCredit
-                    }
+
+        data.balanceInfo = {
+            currency: amountInfo.currency,
+            rate: amountInfo.rate,
+            updateInfo: {
+                $inc: {
+                    "balance.currentBalance": -getFromBalance,
+                    "balance.currentCredit": getFromCredit
                 }
             }
-        })
+        };
+
+        resolve(data);
     });
 }
 

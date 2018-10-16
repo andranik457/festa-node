@@ -7,20 +7,21 @@ const _             = require("underscore");
 const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const config        = require("../config/config");
-const Helper        = require("../modules/helper");
+const Helper        = require("./helper");
 const crypto        = require('crypto');
 const jwt           = require("jsonwebtoken");
+const successTexts  = require("../texts/successTexts");
+const errorTexts    = require("../texts/errorTexts");
 
 const user = {
 
     /**
      *
-     * @param data
-     * @param next
+     * @param req
      * @returns {Promise<any>}
      */
-    insert: data => {
-        const regValidation = {
+    insert: req => {
+        const possibleForm = {
             companyName: {
                 name: "Company Name",
                 type: "text",
@@ -96,11 +97,22 @@ const user = {
             }
         };
 
+        let data = {
+            body: req.body,
+            editableFields: possibleForm,
+            editableFieldsValues: req.body
+        };
+
         return new Promise((resolve, reject) => {
-            Helper.validateData(regValidation, data)
-                .then(doc => {
-                    return data
+            if (undefined === data.body) {
+                reject({
+                    code: 400,
+                    status: "error",
+                    message: "Please check request and try again!"
                 })
+            }
+
+            Helper.validateData(data)
                 .then(checkIsEmailIsExists)
                 .then(Helper.getNewUserId)
                 .then(Helper.getVerificationToken)
@@ -111,25 +123,23 @@ const user = {
                     resolve({
                         code: 200,
                         status: "OK",
+                        message: "New user successfully added!",
                         result : {
-                            message: "New user successfully added!",
                             verificationUrl: verificationUrl
                         }
                     });
                 })
-                .catch(error => {
-                    reject(error)
-                });
+                .catch(reject);
         });
     },
 
     /**
      *
-     * @param data
+     * @param req
      * @returns {Promise<any>}
      */
-    login: data => {
-        const loginValidation = {
+    login: req => {
+        const loginFields = {
             email: {
                 name: "Email Address",
                 type: "email",
@@ -146,18 +156,21 @@ const user = {
             }
         };
 
+        let data = {
+            body: req.body,
+            editableFields: loginFields,
+            editableFieldsValues: req.body
+        };
+
         return new Promise((resolve, reject) => {
-            Helper.validateData(loginValidation, data)
-                .then(doc => {
-                    return data
-                })
+            Helper.validateData(data)
                 .then(loginUser)
-                .then(token => {
+                .then(data => {
                     resolve({
                         code: 200,
                         status: "success",
                         result : {
-                            token: token
+                            token: data.token
                         }
                     });
                 })
@@ -171,14 +184,16 @@ const user = {
 
     /**
      *
-     * @param data
+     * @param req
+     * @returns {Promise<any>}
      */
-    logOut: data => {
-        const reqHeaders = data.headers;
+    logOut: req => {
+        let data = {
+            userInfo: req.userInfo
+        };
 
         return new Promise((resolve, reject) => {
-            Helper.getTokenInfo(reqHeaders.authorization)
-                .then(unsetUserToken)
+            unsetUserToken(data)
                 .then(resolve)
                 .catch(reject)
         })
@@ -248,276 +263,212 @@ const user = {
      * @param data
      * @returns {Promise<any>}
      */
-    getUsers: data => {
-        const reqHeaders = data.headers;
-        const reqBody = data.body;
+    getUsers: req => {
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo
+        };
 
         return new Promise((resolve, reject) => {
-            Helper.getTokenInfo(reqHeaders.authorization)
-                .then(res => {
-                    if ("admin" !== res.role) {
-                        reject({
-                            code: 401,
-                            status: "error",
-                            message: "You don't dave permission to do this action!"
-                        });
-                    }
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
 
-                    return reqBody;
-                })
-                .then(getUsers)
-                .then(res => {
-                    resolve(res)
-                })
-                .catch(err => {
-                    // winston('error', err);
-
-                    reject({
-                        code: 400,
-                        status: "error",
-                        message: "Ups! Something went wrong :("
+            getUsers(data)
+                .then(data => {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        result: {
+                            users: data.cursor
+                        }
                     })
                 })
+                .catch(reject)
         });
     },
 
     /**
      *
-     * @param data
+     * @param req
      * @returns {Promise<any>}
      */
-    updateUserByAdmin: data => {
-        const reqHeaders = data.headers;
-        const reqBody = data.body;
-        const userId = data.params.userId.toString();
-
-        return new Promise((resolve, reject) => {
-            Helper.getTokenInfo(reqHeaders.authorization)
-                .then(res => {
-                    if ("admin" !== res.role) {
-                        reject({
-                            code: 401,
-                            status: "error",
-                            message: "You don't dave permission to do this action!"
-                        });
-                    }
-
-                    return res.role;
-                })
-                .then(Helper.getUserUpdateableFieldsByRole)
-                .then(res => Helper.generateValidationFields(res, reqBody))
-                .then(validationForm => {
-                    return new Promise((resolve, reject) => {
-                        Helper.validateData(validationForm, reqBody)
-                            .then(res => {
-                                resolve({
-                                    validateForm: validationForm,
-                                    reqBody: reqBody
-                                })
-                            })
-                            .catch(reject)
-                    });
-                })
-                .then(Helper.generateUpdateInfo)
-                .then(res => updateUserByAdmin(userId, res))
-                .then(resolve)
-                .catch(reject)
-        });
-    },
-
-    /**
-     * Increase balance By Admin
-     * @param data
-     * @returns {Promise<any>}
-     */
-    increaseBalance: data => {
-        const mainInfo = {};
-        mainInfo.headers = data.headers;
-        mainInfo.body = data.body;
-        mainInfo.userId = data.params.userId.toString();
-
-        const updatableFields = {
-            currency: {
-                name: "Currency",
+    updateUserByAdmin: req => {
+        const possibleForm = {
+            companyName: {
+                name: "Company Name",
                 type: "text",
+                format: "latin",
                 minLength: 3,
-                maxLength: 3,
+                maxLength: 64,
                 required: true
             },
-            amount: {
-                name: "Amount",
+            businessName: {
+                name: "Business Name",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            vat: {
+                name: "VAT",
                 type: "number",
-                required: true
-            },
-            description: {
-                name: "Description",
-                type: "text",
                 minLength: 3,
-                maxLength: 512,
+                maxLength: 64,
                 required: true
             },
-        };
-
-        return new Promise((resolve, reject) => {
-            Helper.getTokenInfo(mainInfo.headers.authorization)
-                .then(res => {
-                    if ("admin" !== res.role) {
-                        reject({
-                            code: 401,
-                            status: "error",
-                            message: "You don't dave permission to do this action!"
-                        });
-                    }
-
-                    mainInfo.role = res.role;
-                    return mainInfo;
-                })
-                .then(mainInfo => {
-                    return new Promise((resolve, reject) => {
-                        Helper.validateData(updatableFields, mainInfo.body)
-                            .then(resolve)
-                            .catch(reject)
-                    });
-                })
-                .then(userInfo => {
-                    return getUserById(mainInfo.userId)
-                })
-                .then(userInfo => {
-                    mainInfo.userDocInfo = userInfo.result.user;
-
-                    return new Promise((resolve, reject) => {
-                        Helper.balanceUpdateInfo(mainInfo)
-                            .then(resolve)
-                            .catch(reject)
-                    });
-                })
-                .then(res => {
-                    let documentInfo = {};
-                    documentInfo.collectionName = "users";
-                    documentInfo.filter = {"userId" : mainInfo.userDocInfo.userId};
-                    documentInfo.newValue = res.updateInfo;
-
-                    let historyInfo = {};
-                    historyInfo.collectionName = "balanceHistory";
-                    historyInfo.documentInfo = {
-                        type: "Increase Balance",
-                        userId: mainInfo.userDocInfo.userId,
-                        currency: res.currency,
-                        rate: res.rate,
-                        amount: data.body.amount,
-                        description: data.body.description,
-                        createdAt: Math.floor(Date.now() / 1000)
-                    };
-
-                    return new Promise((resolve, reject) => {
-                        Promise.all([
-                            mongoRequests.updateDocument(documentInfo),
-                            mongoRequests.insertDocument(historyInfo)
-                        ])
-                            .then(doc => {
-                               resolve({
-                                    code: 200,
-                                    status: "success",
-                                    message: "UserInfo successfully updated!"
-                                })
-                            })
-                            .catch(err => {
-                                // winston.log('error', err);
-
-                                reject({
-                                    code: 400,
-                                    status: "error",
-                                    message: "Ups: Something went wrong:("
-                                })
-                            })
-                    })
-                })
-                .then(resolve)
-                .catch(reject)
-        })
-    },
-
-    /**
-     * Use balance By Admin
-     * @param data
-     * @returns {Promise<any>}
-     */
-    useBalance: data => {
-        const mainInfo = {};
-        mainInfo.headers = data.headers;
-        mainInfo.body = data.body;
-        mainInfo.userId = data.params.userId.toString();
-
-        const updatableFields = {
-            currency: {
-                name: "Currency",
-                type: "text",
-                minLength: 3,
-                maxLength: 3,
-                required: true
-            },
-            amount: {
-                name: "Amount",
+            tin: {
+                name: "TIN",
                 type: "number",
+                minLength: 3,
+                maxLength: 64,
                 required: true
             },
-            description: {
-                name: "Description",
+            ceoName: {
+                name: "CEO Name",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            phone: {
+                name: "Phone Number",
+                type: "phoneNumber",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            email: {
+                name: "Email Address",
+                type: "email",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            password: {
+                name: "Password",
+                type: "password",
+                minLength: 8,
+                length: 64,
+                required: true
+            },
+            country: {
+                name: "Country",
                 type: "text",
                 minLength: 3,
-                maxLength: 512,
+                length: 64,
                 required: true
+            },
+            city: {
+                name: "City",
+                type: "text",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            status: {
+                name: "Status",
+                type: "text",
+                minLength: 3,
+                length: 64,
+                required: true,
             }
         };
 
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            userId: req.params.userId.toString(),
+            possibleForm: possibleForm,
+            editableFieldsValues: req.body
+        };
+
         return new Promise((resolve, reject) => {
-            Helper.getTokenInfo(mainInfo.headers.authorization)
-                .then(res => {
-                    if ("admin" !== res.role) {
-                        reject({
-                            code: 401,
-                            status: "error",
-                            message: "You don't dave permission to do this action!"
-                        });
-                    }
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
 
-                    mainInfo.role = res.role;
-                    return mainInfo;
+            return new Promise((resolve, reject) => {
+                Helper.getEditableFields(data)
+                    .then(Helper.getEditableFieldsValues)
+                    .then(Helper.validateData)
+                    .then(resolve)
+                    .catch(reject)
+            })
+                .then(updateUserByAdmin)
+                .then(data => {
+                    resolve(successTexts.userUpdated)
                 })
-                .then(mainInfo => {
-                    return new Promise((resolve, reject) => {
-                        Helper.validateData(updatableFields, mainInfo.body)
-                            .then(resolve)
-                            .catch(reject)
-                    });
-                })
-                .then(userInfo => {
-                    return getUserById(mainInfo.userId)
-                })
-                .then(userInfo => {
-                    mainInfo.userDocInfo = userInfo.result.user;
+                .catch(reject)
+        });
+    },
 
-                    return new Promise((resolve, reject) => {
-                        Helper.useBalanceByAdmin(mainInfo)
-                            .then(resolve, reject)
-                    });
-                })
-                .then(res => {
-                    let documentInfo = {};
-                    documentInfo.collectionName = "users";
-                    documentInfo.filter = {"userId" : mainInfo.userDocInfo.userId};
-                    documentInfo.newValue = res.info.updateInfo;
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
+    increaseBalance: req => {
+        const possibleForm = {
+            currency: {
+                name: "Currency",
+                type: "text",
+                minLength: 3,
+                maxLength: 3,
+                required: true
+            },
+            amount: {
+                name: "Amount",
+                type: "number",
+                required: true
+            },
+            description: {
+                name: "Description",
+                type: "text",
+                minLength: 3,
+                maxLength: 512,
+                required: true
+            },
+        };
 
-                    let historyInfo = {};
-                    historyInfo.collectionName = "balanceHistory";
-                    historyInfo.documentInfo = {
-                        type: "Use Balance",
-                        userId: mainInfo.userDocInfo.userId,
-                        currency: res.info.currency,
-                        rate: res.info.rate,
-                        amount: data.body.amount,
-                        description: data.body.description,
-                        createdAt: Math.floor(Date.now() / 1000)
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            userId: req.params.userId.toString(),
+            editableFields: possibleForm,
+            editableFieldsValues: req.body
+        };
+
+        return new Promise((resolve, reject) => {
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
+
+            Helper.validateData(data)
+                .then(getUserById)
+                .then(Helper.balanceUpdateInfo)
+                .then(data => {
+                    let documentInfo = {
+                        collectionName: "users",
+                        filterInfo: {
+                            "userId" : data.userId
+                        },
+                        updateInfo: data.balanceInfo.updateInfo
+                    };
+
+                    let historyInfo = {
+                        collectionName: "balanceHistory",
+                        documentInfo: {
+                            type: "Increase Balance",
+                            userId: data.userId,
+                            currency: data.balanceInfo.currency,
+                            rate: data.balanceInfo.rate,
+                            amount: data.body.amount,
+                            description: data.body.description,
+                            createdAt: Math.floor(Date.now() / 1000)
+                        }
                     };
 
                     return new Promise((resolve, reject) => {
@@ -526,54 +477,135 @@ const user = {
                             mongoRequests.insertDocument(historyInfo)
                         ])
                             .then(doc => {
-                                resolve({
-                                    code: 200,
-                                    status: "success",
-                                    message: "UserInfo successfully updated!"
-                                })
+                                resolve(successTexts.userUpdated)
                             })
                             .catch(err => {
-                                // winston.log('error', err);
+                                winston.log('error', err);
 
-                                reject({
-                                    code: 400,
-                                    status: "error",
-                                    message: "Ups: Something went wrong:("
-                                })
+                                reject(errorTexts.forEnyCase)
                             })
-                    })
+                        })
                 })
-                .then(resolve)
+                .then(data => {
+                    resolve(successTexts.userUpdated)
+                })
                 .catch(reject)
         })
     },
 
     /**
      *
-     * @param data
+     * @param req
      * @returns {Promise<any>}
      */
-    getBalanceHistory: data => {
-        const mainInfo = {};
-        mainInfo.headers = data.headers;
-        mainInfo.body = data.body;
-        mainInfo.userId = data.params.userId.toString();
+    useBalance: req => {
+        const possibleForm = {
+            currency: {
+                name: "Currency",
+                type: "text",
+                minLength: 3,
+                maxLength: 3,
+                required: true
+            },
+            amount: {
+                name: "Amount",
+                type: "number",
+                required: true
+            },
+            description: {
+                name: "Description",
+                type: "text",
+                minLength: 3,
+                maxLength: 512,
+                required: true
+            },
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            userId: req.params.userId.toString(),
+            editableFields: possibleForm,
+            editableFieldsValues: req.body
+        };
 
         return new Promise((resolve, reject) => {
-            Helper.getTokenInfo(mainInfo.headers.authorization)
-                .then(res => {
-                    if ("admin" !== res.role) {
-                        reject({
-                            code: 401,
-                            status: "error",
-                            message: "You don't dave permission to do this action!"
-                        });
-                    }
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
 
-                    return mainInfo;
+            Helper.validateData(data)
+                .then(getUserById)
+                .then(Helper.useBalanceByAdmin)
+                .then(data => {
+                    let documentInfo = {
+                        collectionName: "users",
+                        filterInfo: {
+                            "userId" : data.userId
+                        },
+                        updateInfo: data.balanceInfo.updateInfo
+                    };
+
+                    let historyInfo = {
+                        collectionName: "balanceHistory",
+                        documentInfo: {
+                            type: "Use Balance",
+                            userId: data.userId,
+                            currency: data.balanceInfo.currency,
+                            rate: data.balanceInfo.rate,
+                            amount: data.body.amount,
+                            description: data.body.description,
+                            createdAt: Math.floor(Date.now() / 1000)
+                        }
+                    };
+
+                    return new Promise((resolve, reject) => {
+                        Promise.all([
+                            mongoRequests.updateDocument(documentInfo),
+                            mongoRequests.insertDocument(historyInfo)
+                        ])
+                            .then(doc => {
+                                resolve(successTexts.userUpdated)
+                            })
+                            .catch(err => {
+                                winston.log('error', err);
+
+                                reject(errorTexts.forEnyCase)
+                            })
+                    })
                 })
-                .then(getBalanceHistory)
-                .then(resolve)
+                .then(data => {
+                    resolve(successTexts.userUpdated)
+                })
+                .catch(reject)
+        })
+    },
+
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
+    getBalanceHistory: req => {
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            userId: req.params.userId.toString()
+        };
+
+        return new Promise((resolve, reject) => {
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
+
+            getBalanceHistory(data)
+                .then(data => {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        result: data.historyInfo
+                    })
+                })
                 .catch(reject)
         });
     }
@@ -590,17 +622,13 @@ module.exports = user;
 function checkIsEmailIsExists(data) {
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = {email: data.email};
+    documentInfo.filter = {email: data.body.email};
 
     return new Promise((resolve, reject) => {
         mongoRequests.countDocuments(documentInfo)
             .then(docCount => {
                 docCount > 0
-                    ? reject({
-                        code: 400,
-                        status: "error",
-                        message: "Email Address already in use!"
-                    })
+                    ? reject(errorTexts.emailAddressAlreadyInUse)
                     : resolve(data)
             })
     });
@@ -615,22 +643,29 @@ function saveUser(data) {
     let currentTime = Math.floor(Date.now() / 1000);
 
     const userInfo = {
-        userId: data.userId.toString(),
-        companyName: data.companyName,
-        businessName: data.businessName,
-        password: crypto.createHash('sha256').update(data.password + currentTime).digest("hex"),
-        salt: currentTime,
-        email: data.email,
-        vat: data.vat,
-        tin: data.tin,
-        ceoName: data.ceoName,
-        phone: data.phone,
-        status: "notVerified",
-        role: "user",
-        createdAt: currentTime,
-        updatedAt: currentTime,
-        verificationToken: data.verificationToken
+        userId:             data.userId.toString(),
+        companyName:        data.body.companyName,
+        businessName:       data.body.businessName,
+        password:           crypto.createHash('sha256').update(data.body.password + currentTime).digest("hex"),
+        salt:               currentTime,
+        email:              data.body.email,
+        vat:                data.body.vat,
+        tin:                data.body.tin,
+        ceoName:            data.body.ceoName,
+        phone:              data.body.phone,
+        balance: {
+            currentBalance: 0,
+            currentCredit:  0,
+            maxCredit:      0
+        },
+        status:             "notVerified",
+        role:               "user",
+        createdAt:          currentTime,
+        updatedAt:          currentTime,
+        verificationToken:  data.verificationToken
     };
+
+    data.userInfo = userInfo;
 
     let documentInfo = {};
     documentInfo.collectionName = "users";
@@ -639,7 +674,9 @@ function saveUser(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.insertDocument(documentInfo)
             .then(insertRes => {
-                insertRes.insertedCount === 1 ? resolve(userInfo) : reject("Some error occurred we can't save this user!")
+                insertRes.insertedCount === 1
+                    ? resolve(data)
+                    : reject(errorTexts.saveUser)
             })
     });
 }
@@ -653,11 +690,11 @@ function saveUser(data) {
 function verifyUser(data) {
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = {
+    documentInfo.filterInfo = {
         "userId": data.userId.toString(),
         verificationToken: data.token
     };
-    documentInfo.newValue = {
+    documentInfo.updateInfo = {
         $set: {
             status: "verified",
             updatedAt: Math.floor(Date.now() / 1000)
@@ -697,7 +734,7 @@ function verifyUser(data) {
 function loginUser(data) {
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = {"email" : data.email};
+    documentInfo.filterInfo = {"email" : data.body.email};
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
@@ -709,16 +746,18 @@ function loginUser(data) {
                         message: "You can't use this account. You need to get approve from admin."
                     })
                 }
-                if (docInfo.password === crypto.createHash('sha256').update(data.password + docInfo.salt).digest("hex")) {
+                if (docInfo.password === crypto.createHash('sha256').update(data.body.password + docInfo.salt).digest("hex")) {
                     let token = jwt.sign({
                         userId: docInfo.userId,
                         role: docInfo.role
                     }, config[process.env.NODE_ENV].jwtSecret);
 
-                    documentInfo.newValue = {$set: {token: token}};
+                    documentInfo.updateInfo = {$set: {token: token}};
                     mongoRequests.updateDocument(documentInfo);
 
-                    resolve(token);
+                    data.token = token;
+
+                    resolve(data);
                 }
                 else {
                     reject({
@@ -866,20 +905,20 @@ function generateEditValidation(reqBody) {
 
 /**
  *
- * @param filter
+ * @param data
  * @returns {Promise<any>}
  */
-function getUsers(filter) {
+function getUsers(data) {
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = filter;
-    documentInfo.option = {
+    documentInfo.filterInfo = data.body;
+    documentInfo.optionInfo = {
         lean : true,
         sort : {
             createdAt : -1
         }
     };
-    documentInfo.projection = {
+    documentInfo.projectionInfo = {
         _id: 0,
         userId: 1,
         companyName: 1,
@@ -897,75 +936,9 @@ function getUsers(filter) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
             .then(doc => {
-                resolve({
-                    code: 200,
-                    status: "success",
-                    result: {
-                        users: doc
-                    }
-                })
-            })
-            .catch(err => {
-                winston('error', err);
+                data.cursor = doc;
 
-                reject({
-                    code: 400,
-                    status: "error",
-                    message: "Ups: Something went wrong:("
-                })
-            })
-    });
-}
-
-/**
- *
- * @param body
- */
-function updateUserByAdmin(usedId, updateCriteria) {
-    let documentInfo = {};
-    documentInfo.collectionName = "users";
-    documentInfo.filter = {"userId" : usedId};
-    documentInfo.newValue = {$set: updateCriteria};
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.updateDocument(documentInfo)
-            .then(doc => {
-                resolve({
-                    code: 200,
-                    status: "success",
-                    message: "UserInfo successfully updated!"
-                })
-            })
-            .catch(err => {
-                reject({
-                    code: 400,
-                    status: "error",
-                    message: "Ups: Something went wrong:("
-                })
-            })
-    })
-}
-
-/**
- *
- * @param userId
- * @returns {Promise<any>}
- */
-function getUserById(userId) {
-    let documentInfo = {};
-    documentInfo.collectionName = "users";
-    documentInfo.filter = {userId: userId};
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.findDocument(documentInfo)
-            .then(doc => {
-                resolve({
-                    code: 200,
-                    status: "success",
-                    result: {
-                        user: doc
-                    }
-                })
+                resolve(data)
             })
             .catch(err => {
                 winston('error', err);
@@ -984,11 +957,67 @@ function getUserById(userId) {
  * @param data
  * @returns {Promise<any>}
  */
-function getBalanceHistory(data) {
+function updateUserByAdmin(data) {
     let documentInfo = {};
-    documentInfo.collectionName = "balanceHistory";
-    documentInfo.filter = {"userId" : data.userId};
-    documentInfo.option = {sort: {createdAt: -1}};
+    documentInfo.collectionName = "users";
+    documentInfo.filterInfo = {"userId" : data.userId};
+    documentInfo.updateInfo = {$set: data.editableFieldsValues};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                updateRes.ok === 1
+                    ? resolve(data)
+                    : reject(errorTexts.cantUpdateMongoDocument)
+            })
+    })
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
+function getUserById(data) {
+    let documentInfo = {
+        collectionName: "users",
+        filterInfo: {
+            userId: data.userId
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(doc => {
+                data.userDocInfo = doc;
+
+                resolve(data)
+            })
+            .catch(err => {
+                winston('error', err);
+
+                reject(errorTexts.forEnyCase)
+            })
+    });
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
+function getBalanceHistory(data) {
+    let documentInfo = {
+        collectionName: "balanceHistory",
+        filterInfo: {
+            "userId" : data.userId
+        },
+        optionInfo: {
+            sort: {
+                createdAt: -1
+            }
+        }
+    };
 
     let historyInfo = [];
     return new Promise((resolve, reject) => {
@@ -1004,29 +1033,28 @@ function getBalanceHistory(data) {
                     });
                 });
 
-                resolve({
-                    code: 200,
-                    status: "success",
-                    result: historyInfo
-                })
+                data.historyInfo = historyInfo;
+                resolve(data)
             })
             .catch(err => {
                 winston.log("error", err);
 
-                reject({
-                    code: 400,
-                    status: "error",
-                    message: "Ups: Something went wrong:("
-                })
+                reject(errorTexts.forEnyCase)
             })
     })
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 function unsetUserToken(data) {
+    console.log(data.userInfo.userId);
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = {"userId" : data.userId};
-    documentInfo.newValue = {'$set': {token: ""}};
+    documentInfo.filterInfo = {"userId" : data.userInfo.userId};
+    documentInfo.updateInfo = {'$set': {token: ""}};
 
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
@@ -1038,6 +1066,8 @@ function unsetUserToken(data) {
                 })
             })
             .catch(err => {
+                winston.log("error", err);
+
                 reject({
                     code: 400,
                     status: "Error",

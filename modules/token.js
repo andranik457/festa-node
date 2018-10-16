@@ -4,12 +4,9 @@
  */
 
 const platformConfigs   = require("../config/config");
-// const redisRequests     = require("../dbQueries/redisRequests");
-// const helperFunction    = require("./helpers");
 const jwt               = require("jsonwebtoken");
 const async             = require("async");
-const errTexts          = require("../texts/texts");
-// const redisClient       = require("../dbQueries/redisRequests").redisClient;
+const errorTexts        = require("../texts/errorTexts");
 
 const token = {
 

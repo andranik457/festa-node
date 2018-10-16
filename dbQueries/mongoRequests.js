@@ -9,7 +9,7 @@ const mongo         = require("mongodb");
 const _             = require("underscore");
 const winston       = require("winston");
 const config        = require("../config/config");
-const errTexts      = require("../texts/texts");
+const errorTexts      = require("../texts/errorTexts");
 
 /**
  * MongoDB db:Festa Connection
@@ -67,7 +67,7 @@ const mongoQueries = {
      */
     findDocument : data => {
         return new Promise((resolve, reject) => {
-            databaseFesta.collection(data.collectionName).findOne(data.filter, data.projectionInfo)
+            databaseFesta.collection(data.collectionName).findOne(data.filterInfo, data.projectionInfo)
                 .then(resolve, reject)
         });
     },
@@ -131,7 +131,7 @@ const mongoQueries = {
                     return next({
                         code: 401,
                         status: "error",
-                        message: errTexts.tokenNotFound});
+                        message: errorTexts.tokenNotFound});
                 }
                 return next(null, doc);
             }, err => next(err));

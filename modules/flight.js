@@ -6,12 +6,9 @@
 const _             = require("underscore");
 const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
-const config        = require("../config/config");
 const Helper        = require("../modules/helper");
-const crypto        = require('crypto');
-const jwt           = require("jsonwebtoken");
-const errorTexts    = require("../texts/texts");
 const successTexts  = require("../texts/successTexts");
+const errorTexts    = require("../texts/errorTexts");
 const ObjectID      = require('mongodb').ObjectID;
 
 const flight = {
@@ -361,7 +358,7 @@ function updateFlight(data) {
             .then(updateRes => {
                 updateRes.ok === 1
                     ? resolve(data)
-                    : reject(errTexts.cantUpdateMongoDocument)
+                    : reject(errorTexts.cantUpdateMongoDocument)
             })
     });
 }

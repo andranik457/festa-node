@@ -5,11 +5,9 @@
 
 const platformConfigs= require("../config/config");
 const mongoRequests  = require("../dbQueries/mongoRequests");
-// const helperFunction = require("../modules/helpers");
 const tokenFunction  = require("../modules/token");
-const errTexts       = require("../texts/texts");
+const errorTexts       = require("../texts/errorTexts");
 const async          = require("async");
-// const moment         = require("moment");
 const winston        = require("winston");
 
 
@@ -26,7 +24,7 @@ const auth = {
             next({
                 code: 401,
                 status : "error",
-                message : errTexts.unauthorized
+                message : errorTexts.unauthorized
             });
             return;
         }

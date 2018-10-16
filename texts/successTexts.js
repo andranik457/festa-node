@@ -13,6 +13,12 @@ const successTexts = {
         message: "Flights successfully updated!"
     },
 
+    userUpdated: {
+        code: 200,
+        status: "success",
+        message: "User info successfully updated!"
+    },
+
     flightDeleted: {
         code: 200,
         status: "success",
