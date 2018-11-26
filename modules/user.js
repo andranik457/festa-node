@@ -277,7 +277,6 @@ const user = {
                     delete data.userDocInfo["_id"]
                     delete data.userDocInfo["password"]
                     delete data.userDocInfo["token"]
-                    delete data.userDocInfo["role"]
 
                     resolve({
                         code: 200,
