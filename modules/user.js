@@ -170,7 +170,8 @@ const user = {
                         code: 200,
                         status: "success",
                         result : {
-                            token: data.token
+                            token: data.token,
+                            userId: data.userId
                         }
                     });
                 })
@@ -255,6 +256,36 @@ const user = {
                 .catch(err => {
                     reject(err)
                 })
+        });
+    },
+
+    getUserByUserId: req => {
+        let data = {
+            userId: req.params.userId.toString(),
+        };
+
+        return new Promise((resolve, reject) => {
+            // if ("Admin" !== data.userInfo.role) {
+            //     reject(errorTexts.userRole)
+            // }
+
+            getUserById(data)
+                .then(data => {
+                    // if (userDocInfo.token !== req) {
+                    //
+                    // }
+                    delete data.userDocInfo["_id"]
+                    delete data.userDocInfo["password"]
+                    delete data.userDocInfo["token"]
+                    delete data.userDocInfo["role"]
+
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        result: data.userDocInfo
+                    })
+                })
+                .catch(reject)
         });
     },
 
@@ -739,14 +770,14 @@ function loginUser(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
             .then(docInfo => {
-                if ("approved" !== docInfo.status) {
+                if (null != docInfo && "approved" !== docInfo.status) {
                     reject({
                         code: 403,
                         status: "error",
                         message: "You can't use this account. You need to get approve from admin."
                     })
                 }
-                if (docInfo.password === crypto.createHash('sha256').update(data.body.password + docInfo.salt).digest("hex")) {
+                else if (null != docInfo && docInfo.password === crypto.createHash('sha256').update(data.body.password + docInfo.salt).digest("hex")) {
                     let token = jwt.sign({
                         userId: docInfo.userId,
                         role: docInfo.role
@@ -756,6 +787,7 @@ function loginUser(data) {
                     mongoRequests.updateDocument(documentInfo);
 
                     data.token = token;
+                    data.userId = docInfo.userId;
 
                     resolve(data);
                 }
@@ -902,6 +934,51 @@ function generateEditValidation(reqBody) {
         }
     });
 }
+
+
+// function getUserById(data) {
+//     let documentInfo = {};
+//     documentInfo.collectionName = "users";
+//     documentInfo.filterInfo = {
+//         userId: data.userId
+//     };
+//     documentInfo.optionInfo = {
+//         lean : true
+//     };
+//     documentInfo.projectionInfo = {
+//         _id: 0,
+//         userId: 1,
+//         companyName: 1,
+//         businessName: 1,
+//         email: 1,
+//         vat: 1,
+//         tin: 1,
+//         ceoName: 1,
+//         phone: 1,
+//         status: 1,
+//         role: 1,
+//         createdAt: 1,
+//         token: 1
+//     };
+//
+//     return new Promise((resolve, reject) => {
+//         mongoRequests.findDocument(documentInfo)
+//             .then(doc => {
+//                 data.cursor = doc;
+//
+//                 resolve(data)
+//             })
+//             .catch(err => {
+//                 winston('error', err);
+//
+//                 reject({
+//                     code: 400,
+//                     status: "error",
+//                     message: "Ups: Something went wrong:("
+//                 })
+//             })
+//     });
+// }
 
 /**
  *
@@ -1050,7 +1127,6 @@ function getBalanceHistory(data) {
  * @returns {Promise<any>}
  */
 function unsetUserToken(data) {
-    console.log(data.userInfo.userId);
     let documentInfo = {};
     documentInfo.collectionName = "users";
     documentInfo.filterInfo = {"userId" : data.userInfo.userId};

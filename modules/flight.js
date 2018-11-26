@@ -38,14 +38,28 @@ const flight = {
             },
             startDate: {
                 name: "Start Date (Local time)",
-                type: "number",
+                type: "date",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            startDateTimeZone: {
+                name: "Start Date TimeZone (Local time)",
+                type: "timeZone",
                 minLength: 3,
                 maxLength: 64,
                 required: true
             },
             endDate: {
                 name: "End Date (Local time)",
-                type: "number",
+                type: "date",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            endDateTimeZone: {
+                name: "End Date TimeZone (Local time)",
+                type: "timeZone",
                 minLength: 3,
                 maxLength: 64,
                 required: true
@@ -129,14 +143,28 @@ const flight = {
             },
             startDate: {
                 name: "Start Date (Local time)",
-                type: "number",
+                type: "date",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            startDateTimeZone: {
+                name: "Start Date TimeZone (Local time)",
+                type: "timeZone",
                 minLength: 3,
                 maxLength: 64,
                 required: true
             },
             endDate: {
                 name: "End Date (Local time)",
-                type: "number",
+                type: "date",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            endDateTimeZone: {
+                name: "End Date TimeZone (Local time)",
+                type: "timeZone",
                 minLength: 3,
                 maxLength: 64,
                 required: true
@@ -306,18 +334,20 @@ function saveFlight(data) {
     let currentTime = Math.floor(Date.now() / 1000);
 
     let flightInfo = {
-        from:           data.body.from,
-        to:             data.body.to,
-        startDate:      Number(data.body.startDate),
-        endDate:        Number(data.body.endDate),
-        flightNumber:   data.body.flightNumber,
-        airline:        data.body.airline,
-        numberOfSeats:  Number(data.body.numberOfSeats),
-        currency:       data.body.currency,
-        duration:       data.body.duration,
-        status:         "upcoming",
-        updatedAt:      currentTime,
-        createdAt:      currentTime
+        from:               data.body.from,
+        to:                 data.body.to,
+        startDate:          data.body.startDate,
+        startDateTimeZone:  data.body.startDateTimeZone,
+        endDate:            data.body.endDate,
+        endDateTimeZone:    data.body.endDateTimeZone,
+        flightNumber:       data.body.flightNumber,
+        airline:            data.body.airline,
+        numberOfSeats:      Number(data.body.numberOfSeats),
+        currency:           data.body.currency,
+        duration:           data.body.duration,
+        status:             "upcoming",
+        updatedAt:          currentTime,
+        createdAt:          currentTime
     };
 
     data.flightDocumetInfo = flightInfo;
@@ -403,7 +433,6 @@ function getFlights(data) {
     documentInfo.filterInfo = {status: data.body.status || {$exists: true}};
     documentInfo.optionInfo = {sort: {createdAt: -1}};
     documentInfo.projectionInfo = {
-        _id: 0,
         from: 1,
         to: 1,
         startDate: 1,
@@ -419,7 +448,8 @@ function getFlights(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
             .then(docInfo => {
-                data.result = docInfo
+                console.log(docInfo);
+                data.result = docInfo;
 
                 resolve(data)
             })

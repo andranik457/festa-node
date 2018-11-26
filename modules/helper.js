@@ -3,14 +3,16 @@
  * Modoule Dependencies
  */
 
-const _             = require("underscore");
-const winston       = require("winston");
-const mongoRequests = require("../dbQueries/mongoRequests");
-const config        = require("../config/config");
-const crypto        = require('crypto');
-const jwt           = require("jsonwebtoken");
-const successTexts  = require("../texts/successTexts");
-const errorTexts    = require("../texts/errorTexts");
+const _                 = require("underscore");
+const winston           = require("winston");
+const moment            = require("moment");
+const momentTimeZone    = require('moment-timezone');
+const mongoRequests     = require("../dbQueries/mongoRequests");
+const config            = require("../config/config");
+const crypto            = require('crypto');
+const jwt               = require("jsonwebtoken");
+const successTexts      = require("../texts/successTexts");
+const errorTexts        = require("../texts/errorTexts");
 
 const helper = {
     getTokenInfo,
@@ -146,6 +148,7 @@ function validateData(data) {
     const passwordValidateSpecialCharacter = /(?=.*[!@#$%^&*()])/;
     const numberValidate = /^[0-9]+$/;
     const phoneNumberValidate = /^[+]+[0-9]+$/;
+    const dateValidate = /^\d\d\d\d-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]) (00|[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9])$/;
 
     let errorMessage = {};
 
@@ -198,6 +201,31 @@ function validateData(data) {
                     }
                 }
 
+                // date check
+                if ("date" === validationFields[field].type) {
+                    if (!dateValidate.test(checkData[field])) {
+                        errorMessage[field] = validationFields[field].name + " not corresponding date time format";
+                    }
+                }
+
+                // timeZone check
+                if ("timeZone" === validationFields[field].type) {
+                    // if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
+                    //     throw 'Time zones are not available in this environment';
+                    // }
+                    //
+                    // try {
+                    //     Intl.DateTimeFormat(undefined, {timeZone: checkData[field]});
+                    //     return true;
+                    // }
+                    // catch (ex) {
+                    //     errorMessage[field] = validationFields[field].name + " not corresponding timeZone format";
+                    // }
+
+                    if (!momentTimeZone.tz.zone(checkData[field])) {
+                        errorMessage[field] = validationFields[field].name + " not corresponding timeZone format";
+                    }
+                }
             }
 
             // Min Length
@@ -489,8 +517,13 @@ async function useBalanceByAdmin(data) {
 }
 
 async function calculateFlightDuration(data) {
+    let startTime = moment.tz(data.body.startDate, data.body.startDateTimeZone);
+    let startTimeStamp = moment(startTime).format("X");
 
-    let flightDuration = Math.abs(data.body.endDate - data.body.startDate);
+    let endTime = moment.tz(data.body.endDate, data.body.endDateTimeZone);
+    let endTimestamp = moment(endTime).format("X");
+
+    let flightDuration = Math.abs(endTimestamp - startTimeStamp);
 
     data.body.duration = flightDuration;
 

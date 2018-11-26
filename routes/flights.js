@@ -76,6 +76,9 @@ router.post("/get", (req, res) => {
         });
 });
 
+/**
+ * Get Flight
+ */
 router.get("/get/:flightId", (req, res) => {
     flightFunc.getFlight(req)
         .then(result => {

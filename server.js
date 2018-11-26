@@ -14,6 +14,7 @@ const secret        = config[process.env.NODE_ENV].jwtSecret;
 const auth          = require("./middlewares/auth");
 //
 const flights       = require("./routes/flights");
+const classes       = require("./routes/classes");
 const users         = require("./routes/users");
 const routes        = require("./routes/routes");
 
@@ -23,9 +24,25 @@ const routes        = require("./routes/routes");
  */
 
 app.use("/api", expressJwt({secret: secret}));
-// app.use(bodyParser.json({type : "*/*", limit: '2mb'}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(bodyParser.text({type : "application/x-www-form-urlencoded", limit: '8mb'}));
+
+// app.use((req, res, next) => {
+//     if ("OPTIONS" === req.method) {
+//         if (req.headers["access-control-request-headers"]) {
+//             res.header("Access-Control-Allow-Headers", req.headers["access-control-request-headers"]);
+//         }
+//         return res.send();
+//     }
+//     next();
+// });
+
+app.all('*', function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
 
 /**
  * Routes
@@ -37,6 +54,7 @@ app.use("/api", auth.isAuth);
  * Routes
  */
 app.use("/api/flights", flights);
+app.use("/api/classes", classes);
 app.use("/api/users", users);
 app.use("/", routes);
 
@@ -44,13 +62,9 @@ app.use("/", routes);
  * production error handler
  */
 app.use((err, req, res, next) => {
-    res.status(err.code || 500);
-
-    console.log(err);
-
+    res.status(err.status || 500);
     res.json({
-        code: err.code || 500,
-        status : err.status,
+        code: err.status || 500,
         message : err.message
     });
 });

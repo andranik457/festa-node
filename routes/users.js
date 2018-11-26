@@ -41,6 +41,22 @@ router.get("/log-out", (req, res) => {
 // });
 
 /**
+ * Get User by userId
+ */
+router.get("/get-user/:userId", (req, res) => {
+    userFunc.getUserByUserId(req)
+        .then(result => {
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+            //
+            res.status(err.code);
+            return res.json(err);
+        })
+});
+
+/**
  * Get Users by filter
  */
 router.post("/get-users", (req, res) => {
