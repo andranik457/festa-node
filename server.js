@@ -14,10 +14,16 @@ const secret        = config[process.env.NODE_ENV].jwtSecret;
 const auth          = require("./middlewares/auth");
 //
 const flights       = require("./routes/flights");
-const classes       = require("./routes/classes");
+// const classes       = require("./routes/classes");
 const users         = require("./routes/users");
 const routes        = require("./routes/routes");
 
+app.all('*', function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
 
 /**
  * Express middleware
@@ -37,12 +43,7 @@ app.use(bodyParser.text({type : "application/x-www-form-urlencoded", limit: '8mb
 //     next();
 // });
 
-app.all('*', function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-});
+
 
 /**
  * Routes
@@ -54,7 +55,7 @@ app.use("/api", auth.isAuth);
  * Routes
  */
 app.use("/api/flights", flights);
-app.use("/api/classes", classes);
+// app.use("/api/classes", classes);
 app.use("/api/users", users);
 app.use("/", routes);
 
@@ -62,11 +63,21 @@ app.use("/", routes);
  * production error handler
  */
 app.use((err, req, res, next) => {
-    res.status(err.status || 500);
-    res.json({
-        code: err.status || 500,
-        message : err.message
-    });
+    if (isNaN(err.status)) {
+        res.status(err.code || 500);
+        res.json({
+            code: err.code || 500,
+            message : err.code
+        });
+    }
+    else {
+        res.status(err.status || 500);
+        res.json({
+            code: err.status || 500,
+            message : err.message
+        });
+    }
+
 });
 
 /**

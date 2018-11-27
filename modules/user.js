@@ -294,6 +294,7 @@ const user = {
      * @returns {Promise<any>}
      */
     getUsers: req => {
+        console.log(req);
         let data = {
             body: req.body,
             userInfo: req.userInfo
