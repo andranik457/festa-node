@@ -1,4 +1,2 @@
 git reset --hard
 npm i
-npm i moment
-npm i moment-timezone

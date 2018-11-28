@@ -18,10 +18,25 @@ const flights       = require("./routes/flights");
 const users         = require("./routes/users");
 const routes        = require("./routes/routes");
 
-app.all('*', function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+// check Access-Control
+
+// app.all('*', function (req, res, next) {
+//     res.header('Access-Control-Allow-Origin', '*');
+//     res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+//     res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+//     next();
+// });
+
+app.use((req, res, next) => {
+    if ("OPTIONS" === req.method) {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+
+        if (req.headers["access-control-request-headers"]) {
+            res.header("Access-Control-Allow-Headers", req.headers["access-control-request-headers"]);
+        }
+        return res.send();
+    }
     next();
 });
 
@@ -32,18 +47,6 @@ app.all('*', function (req, res, next) {
 app.use("/api", expressJwt({secret: secret}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(bodyParser.text({type : "application/x-www-form-urlencoded", limit: '8mb'}));
-
-// app.use((req, res, next) => {
-//     if ("OPTIONS" === req.method) {
-//         if (req.headers["access-control-request-headers"]) {
-//             res.header("Access-Control-Allow-Headers", req.headers["access-control-request-headers"]);
-//         }
-//         return res.send();
-//     }
-//     next();
-// });
-
-
 
 /**
  * Routes
