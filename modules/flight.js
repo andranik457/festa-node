@@ -442,6 +442,7 @@ function getFlights(data) {
         numberOfSeats: 1,
         currency: 1,
         duration: 1,
+        status: 1,
         createdAt: 1,
         updatedAt: 1,
         deletedAt: 1

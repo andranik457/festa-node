@@ -140,7 +140,7 @@ function validateData(data) {
     const validationFields = data.editableFields;
     const checkData = data.editableFieldsValues;
 
-    const latinLettersValidate = /^[a-zA-Z]+[a-zA-Z ]+[a-zA-Z]+$/;
+    const latinLettersValidate = /^[a-zA-Z ]+$/;
     const emailValidate = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     const passwordValidateLowercase = /^(?=.*[a-z])/;
     const passwordValidateUppercase = /(?=.*[A-Z])/;
@@ -154,6 +154,10 @@ function validateData(data) {
 
     return new Promise((resolve, reject) => {
         for (let field in validationFields) {
+            // trim data
+            if (typeof checkData[field] !== "undefined") {
+                checkData[field] = checkData[field].trim();
+            }
 
             // Required
             if (validationFields[field].required && (typeof checkData[field] === "undefined")) {
