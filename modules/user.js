@@ -294,7 +294,6 @@ const user = {
      * @returns {Promise<any>}
      */
     getUsers: req => {
-        console.log(req);
         let data = {
             body: req.body,
             userInfo: req.userInfo
@@ -684,6 +683,8 @@ function saveUser(data) {
         tin:                data.body.tin,
         ceoName:            data.body.ceoName,
         phone:              data.body.phone,
+        country:            data.body.country,
+        city:               data.body.city,
         balance: {
             currentBalance: 0,
             currentCredit:  0,
@@ -1005,6 +1006,8 @@ function getUsers(data) {
         tin: 1,
         ceoName: 1,
         phone: 1,
+        country: 1,
+        city: 1,
         status: 1,
         role: 1,
         createdAt: 1

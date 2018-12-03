@@ -154,6 +154,7 @@ function validateData(data) {
 
     return new Promise((resolve, reject) => {
         for (let field in validationFields) {
+
             // trim data
             if (typeof checkData[field] !== "undefined") {
                 checkData[field] = checkData[field].trim();

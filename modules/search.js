@@ -88,10 +88,14 @@ const searchInfo = {
                     .catch(reject)
             })
                 .then(createSearchFilter)
-                // .then(updateClass)
-                // .then(data => {
-                //     resolve(successTexts.classUpdated)
-                // })
+                .then(data => {
+                    resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "Search info successfully goten!",
+                        data: data.result
+                    })
+                })
                 .catch(reject)
         });
     }
@@ -101,17 +105,21 @@ const searchInfo = {
 module.exports = searchInfo;
 
 function createSearchFilter(data) {
-    let filter = {
-        "$and": [
+    let filter = {status: "upcoming"};
 
-        ]
-    };
+    if (!_.isEmpty(data.editableFieldsValues)) {
+        filter = {
+            "$and": [
+                {status: "upcoming"}
+            ]
+        };
 
-    _.each(data.editableFieldsValues, (value, key) => {
-        filter["$and"].push({
-            [key]: value
+        _.each(data.editableFieldsValues, (value, key) => {
+            filter["$and"].push({
+                [key]: value
+            });
         });
-    });
+    }
 
     let documentInfo = {};
     documentInfo.collectionName = "flights";
@@ -122,6 +130,8 @@ function createSearchFilter(data) {
         to: 1,
         startDate: 1,
         endDate: 1,
+        startDateTimeZone: 1,
+        endDateTimeZone: 1,
         flightNumber: 1,
         airline: 1,
         numberOfSeats: 1,
@@ -135,7 +145,6 @@ function createSearchFilter(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
             .then(docInfo => {
-                console.log(docInfo);
                 data.result = docInfo;
 
                 resolve(data)
