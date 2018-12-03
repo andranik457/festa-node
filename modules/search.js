@@ -104,7 +104,7 @@ const searchInfo = {
 
 module.exports = searchInfo;
 
-function createSearchFilter(data) {
+async function createSearchFilter(data) {
     let filter = {status: "upcoming"};
 
     if (!_.isEmpty(data.editableFieldsValues)) {
@@ -113,6 +113,22 @@ function createSearchFilter(data) {
                 {status: "upcoming"}
             ]
         };
+
+        // check if isset from | to to get timezones for this places
+        let startDateTimeZone = null;
+        if (_.has(data.editableFieldsValues, "from")) {
+            let flightInfo = await getTimeZoneFromFlight("from", data.editableFieldsValues.from);
+            startDateTimeZone = flightInfo.startDateTimeZone;
+        }
+
+        // check if isset from | to to get timezones for this places
+        let endDateTimeZone = null;
+        if (_.has(data.editableFieldsValues, "to")) {
+            let flightInfo = await getTimeZoneFromFlight("to", data.editableFieldsValues.to);
+            endDateTimeZone = flightInfo.endDateTimeZone;
+        }
+
+        console.log(startDateTimeZone, endDateTimeZone);
 
         _.each(data.editableFieldsValues, (value, key) => {
             filter["$and"].push({
@@ -148,6 +164,21 @@ function createSearchFilter(data) {
                 data.result = docInfo;
 
                 resolve(data)
+            })
+            .catch(reject)
+    });
+}
+
+async function getTimeZoneFromFlight(destination, city) {
+    let documentInfo = {};
+    documentInfo.collectionName = "flights";
+    documentInfo.filterInfo = {[destination]: city};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                resolve(docInfo)
             })
             .catch(reject)
     });
