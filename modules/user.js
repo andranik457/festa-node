@@ -1008,6 +1008,7 @@ function getUsers(data) {
         phone: 1,
         country: 1,
         city: 1,
+        balance: 1,
         status: 1,
         role: 1,
         createdAt: 1

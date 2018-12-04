@@ -110,6 +110,7 @@ const flight = {
 
             Helper.validateData(data)
                 .then(Helper.calculateFlightDuration)
+                .then(checkStartDateEndDateDiff)
                 .then(saveFlight)
                 .then(data => {
                     resolve(successTexts.flightCreated)
@@ -493,5 +494,18 @@ function getFlight(data) {
                 resolve(data)
             })
             .catch(reject)
+    });
+}
+
+function checkStartDateEndDateDiff(data) {
+
+    return new Promise((resolve, reject) => {
+
+        if (data.body.startDateTimestamp > data.body.endDateTimestamp) {
+            reject(errorTexts.incorrectStartEndDate)
+        }
+        else {
+            resolve(data)
+        }
     });
 }

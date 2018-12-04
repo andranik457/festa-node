@@ -531,6 +531,8 @@ async function calculateFlightDuration(data) {
     let flightDuration = Math.abs(endTimestamp - startTimeStamp);
 
     data.body.duration = flightDuration;
+    data.body.startDateTimestamp = startTimeStamp;
+    data.body.endDateTimestamp = endTimestamp;
 
     return data;
 }
