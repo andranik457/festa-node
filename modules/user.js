@@ -404,6 +404,13 @@ const user = {
                 minLength: 3,
                 length: 64,
                 required: true,
+            },
+            role: {
+                name: "Role",
+                type: "text",
+                minLength: 3,
+                length: 64,
+                required: true,
             }
         };
 
