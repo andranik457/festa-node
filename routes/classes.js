@@ -59,4 +59,21 @@ router.get("/delete/:classId", (req, res) => {
         });
 });
 
+/**
+ * Get classes by flightId
+ */
+router.get("/get-by-flightId/:flightId", (req, res) => {
+    classFunc.getByFlightId(req)
+        .then(result => {
+            res.status(result.code);
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+
+            res.status(err.code);
+            return res.json(err);
+        });
+});
+
 module.exports = router;

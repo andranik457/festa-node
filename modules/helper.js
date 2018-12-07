@@ -215,18 +215,6 @@ function validateData(data) {
 
                 // timeZone check
                 if ("timeZone" === validationFields[field].type) {
-                    // if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
-                    //     throw 'Time zones are not available in this environment';
-                    // }
-                    //
-                    // try {
-                    //     Intl.DateTimeFormat(undefined, {timeZone: checkData[field]});
-                    //     return true;
-                    // }
-                    // catch (ex) {
-                    //     errorMessage[field] = validationFields[field].name + " not corresponding timeZone format";
-                    // }
-
                     if (!momentTimeZone.tz.zone(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " not corresponding timeZone format";
                     }
@@ -404,6 +392,11 @@ async function generateUpdateInfo(data) {
     return updateCriteria;
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
 async function balanceUpdateInfo(data) {
     let payForCredit = 0;
     let payForBalance = 0;
@@ -440,6 +433,12 @@ async function balanceUpdateInfo(data) {
     return data;
 }
 
+/**
+ *
+ * @param currency
+ * @param amount
+ * @returns {Promise<*>}
+ */
 async function checkAmount(currency, amount) {
     const currencyInfo = await getCurrencyInfo();
 
@@ -466,6 +465,10 @@ async function checkAmount(currency, amount) {
     return amountInfo;
 }
 
+/**
+ *
+ * @returns {{amd: number, usd: number}}
+ */
 function getCurrencyInfo() {
     return {
         amd: 1,
@@ -473,6 +476,11 @@ function getCurrencyInfo() {
     }
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 async function useBalanceByAdmin(data) {
     let getFromCredit = 0;
     let getFromBalance = 0;
@@ -521,20 +529,58 @@ async function useBalanceByAdmin(data) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 async function calculateFlightDuration(data) {
-    let startTime = moment.tz(data.body.startDate, data.body.startDateTimeZone);
+    let startDateOffset = moment.tz.zone(data.body.startDateTimeZone).utcOffset(moment(data.body.startDate));
+    let endDateOffset = moment.tz.zone(data.body.endDateTimeZone).utcOffset(moment(data.body.endDate));
+
+    let startTime = moment.tz(data.body.startDate, "UTC");
     let startTimeStamp = moment(startTime).format("X");
 
-    let endTime = moment.tz(data.body.endDate, data.body.endDateTimeZone);
+    let endTime = moment.tz(data.body.endDate, "UTC");
     let endTimestamp = moment(endTime).format("X");
 
-    let flightDuration = Math.abs(endTimestamp - startTimeStamp);
+    let startDateTimestamp = startTimeStamp - startDateOffset*60;
+    let endDateTimestamp = endTimestamp - endDateOffset * 60;
 
-    data.body.duration = flightDuration;
-    data.body.startDateTimestamp = startTimeStamp;
-    data.body.endDateTimestamp = endTimestamp;
+    return new Promise((resolve, reject) => {
 
-    return data;
+        if (startDateTimestamp >= endDateTimestamp) {
+            reject(errorTexts.incorrectStartEndDate)
+        }
+        else {
+            let flightDuration = endDateTimestamp - startDateTimestamp;
+
+            let startDateInfo = data.body.startDate.split(" ");
+            let endDateInfo = data.body.endDate.split(" ");
+
+            data.body.duration = flightDuration;
+            data.body.dateinfo  = {
+                startDate:              startDateInfo[0],
+                startTime:              startDateInfo[1],
+                endDate:                endDateInfo[0],
+                endTime:                endDateInfo[1],
+                startDateTimeZone:      data.body.startDateTimeZone,
+                endDateTimeZone:        data.body.endDateTimeZone,
+                startDateUtcOffset:     startDateOffset,
+                endDateUtcOffset:       endDateOffset,
+                startTimestamp:         parseInt(startTimeStamp),
+                endTimestamp:           parseInt(endTimestamp),
+                startDateTimeString:    data.body.startDate,
+                endDateTimeString:      data.body.endDate,
+                startDateTimeTimestamp: startDateTimestamp,
+                endDateTimeTimestamp:   endDateTimestamp,
+            };
+
+            resolve(data)
+        }
+
+    });
+
 }
 
 /**

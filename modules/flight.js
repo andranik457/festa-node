@@ -102,7 +102,6 @@ const flight = {
             editableFieldsValues: req.body
         };
 
-
         return new Promise((resolve, reject) => {
             if ("Admin" !== data.userInfo.role) {
                 reject(errorTexts.userRole)
@@ -110,7 +109,6 @@ const flight = {
 
             Helper.validateData(data)
                 .then(Helper.calculateFlightDuration)
-                .then(checkStartDateEndDateDiff)
                 .then(saveFlight)
                 .then(data => {
                     resolve(successTexts.flightCreated)
@@ -337,15 +335,12 @@ function saveFlight(data) {
     let flightInfo = {
         from:               data.body.from,
         to:                 data.body.to,
-        startDate:          data.body.startDate,
-        startDateTimeZone:  data.body.startDateTimeZone,
-        endDate:            data.body.endDate,
-        endDateTimeZone:    data.body.endDateTimeZone,
+        duration:           data.body.duration,
+        dateInfo:           data.body.dateinfo,
         flightNumber:       data.body.flightNumber,
         airline:            data.body.airline,
         numberOfSeats:      Number(data.body.numberOfSeats),
         currency:           data.body.currency,
-        duration:           data.body.duration,
         status:             "upcoming",
         updatedAt:          currentTime,
         createdAt:          currentTime
@@ -362,7 +357,7 @@ function saveFlight(data) {
             .then(insertRes => {
                 insertRes.insertedCount === 1
                     ? resolve(data)
-                    : reject(errTexts.cantSaveDocumentToMongo)
+                    : reject(errorTexts.cantSaveDocumentToMongo)
             })
     });
 
@@ -494,18 +489,5 @@ function getFlight(data) {
                 resolve(data)
             })
             .catch(reject)
-    });
-}
-
-function checkStartDateEndDateDiff(data) {
-
-    return new Promise((resolve, reject) => {
-
-        if (data.body.startDateTimestamp > data.body.endDateTimestamp) {
-            reject(errorTexts.incorrectStartEndDate)
-        }
-        else {
-            resolve(data)
-        }
     });
 }

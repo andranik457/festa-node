@@ -372,6 +372,35 @@ const classInfo = {
         })
     },
 
+    getByFlightId: req => {
+        let data = {
+            userInfo: req.userInfo,
+            flightId: req.params.flightId.toString()
+        };
+
+        return new Promise((resolve, reject) => {
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
+
+            if (!ObjectID.isValid(data.flightId)) {
+                reject(errorTexts.mongId)
+            }
+
+            getClassesByFlightId(data)
+                .then(data => {
+                    resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "Flight info successfully goten!",
+                        data: data.result
+                    })
+                })
+                .catch(reject)
+        })
+    }
+
+
 };
 
 module.exports = classInfo;
@@ -389,6 +418,7 @@ function saveClass(data) {
         className:                  data.body.className,
         classType:                  data.body.classType,
         numberOfSeats:              Number(data.body.numberOfSeats),
+        availableSeats:             Number(data.body.numberOfSeats),
         fareRules:                  data.body.fareRules,
         fareAdult:                  data.body.fareAdult,
         fareChd:                    data.body.fareChd,
@@ -499,6 +529,11 @@ function updateClass(data) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 function removeClass(data) {
     let currentTime = Math.floor(Date.now() / 1000);
 
@@ -520,5 +555,22 @@ function removeClass(data) {
                     ? resolve(data)
                     : reject(errorTexts.cantUpdateMongoDocument)
             })
+    });
+}
+
+function getClassesByFlightId(data) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {flightId: data.flightId};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(docInfo => {
+                data.result = docInfo;
+
+                resolve(data)
+            })
+            .catch(reject)
     });
 }
