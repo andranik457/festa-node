@@ -290,7 +290,7 @@ const user = {
 
     /**
      *
-     * @param data
+     * @param req
      * @returns {Promise<any>}
      */
     getUsers: req => {
@@ -791,7 +791,7 @@ function loginUser(data) {
                         role: docInfo.role
                     }, config[process.env.NODE_ENV].jwtSecret);
 
-                    documentInfo.updateInfo = {$set: {token: token}};
+                    documentInfo.updateInfo = {$push: {tokens: token}};
                     mongoRequests.updateDocument(documentInfo);
 
                     data.token = token;
@@ -1138,10 +1138,16 @@ function getBalanceHistory(data) {
  * @returns {Promise<any>}
  */
 function unsetUserToken(data) {
+    let token = '';
+
+    if (data.userInfo.token) {
+        token = data.userInfo.token;
+    }
+
     let documentInfo = {};
     documentInfo.collectionName = "users";
     documentInfo.filterInfo = {"userId" : data.userInfo.userId};
-    documentInfo.updateInfo = {'$set': {token: ""}};
+    documentInfo.updateInfo = {'$pull': {"tokens": token}};
 
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)

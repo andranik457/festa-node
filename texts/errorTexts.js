@@ -1,6 +1,12 @@
 
 const text = {
 
+    incorrectToken: {
+        code: 401,
+        status: "error",
+        message: "Ups: Incorrect Token, please check token and try again (:"
+    },
+
     forEnyCase: {
         code: 403,
         status: "error",

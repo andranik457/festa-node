@@ -38,6 +38,9 @@ const auth = {
                 });
             }
         ], (err, result) => {
+            if (result[0] !== null) {
+                result[0].token = decode.bearer;
+            }
             req.userInfo = result[0];
 
             if (err) return next(err);

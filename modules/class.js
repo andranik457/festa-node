@@ -25,9 +25,8 @@ const classInfo = {
             className: {
                 name: "Class Name",
                 type: "text",
-                format: "latin",
-                minLength: 2,
-                maxLength: 3,
+                minLength: 1,
+                maxLength: 6,
                 required: true
             },
             classType: {
@@ -47,9 +46,9 @@ const classInfo = {
             },
             fareRules: {
                 name: "Fare Rules",
-                type: "number",
+                type: "text",
                 minLength: 1,
-                maxLength: 5,
+                maxLength: 500,
                 required: true
             },
             fareAdult: {
@@ -372,6 +371,11 @@ const classInfo = {
         })
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
     getByFlightId: req => {
         let data = {
             userInfo: req.userInfo,
@@ -558,6 +562,11 @@ function removeClass(data) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 function getClassesByFlightId(data) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";

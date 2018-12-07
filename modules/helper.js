@@ -40,7 +40,7 @@ function getTokenInfo(tokenInfo) {
 
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = {"token" : token[1]};
+    documentInfo.filter = {"tokens" : token[1]};
 
     return new Promise((resolve, reject) => {
         Promise.all([

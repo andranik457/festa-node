@@ -123,15 +123,12 @@ const mongoQueries = {
     },
 
     findToken : (bearer, next) => {
-        let filter = {token: bearer};
+        let filter = {tokens: bearer};
 
         databaseFesta.collection("users").findOne(filter)
             .then(doc => {
                 if (_.isEmpty(doc)) {
-                    return next({
-                        code: 401,
-                        status: "error",
-                        message: errorTexts.tokenNotFound});
+                    return next(errorTexts.incorrectToken);
                 }
                 return next(null, doc);
             }, err => next(err));
