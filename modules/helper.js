@@ -13,6 +13,7 @@ const crypto            = require('crypto');
 const jwt               = require("jsonwebtoken");
 const successTexts      = require("../texts/successTexts");
 const errorTexts        = require("../texts/errorTexts");
+const request           = require('request');
 
 const helper = {
     getTokenInfo,
@@ -27,7 +28,8 @@ const helper = {
     useBalanceByAdmin,
     calculateFlightDuration,
     getEditableFields,
-    getEditableFieldsValues
+    getEditableFieldsValues,
+    getCurrencyInfo
 };
 
 /**
@@ -447,16 +449,23 @@ async function checkAmount(currency, amount) {
     switch (currency) {
         case "AMD":
             amountInfo = {
-                amount: currencyInfo.amd * amount,
+                amount: parseFloat(currencyInfo.AMD) * amount,
                 currency: "AMD",
-                rate: currencyInfo.amd
+                rate: parseFloat(currencyInfo.AMD)
             };
             break;
         case "USD":
             amountInfo = {
-                amount: currencyInfo.usd * amount,
+                amount: parseFloat(currencyInfo.USD) * amount,
                 currency: "USD",
-                rate: currencyInfo.usd
+                rate: parseFloat(currencyInfo.USD)
+            };
+            break;
+        case "EUR":
+            amountInfo = {
+                amount: parseFloat(currencyInfo.EUR) * amount,
+                currency: "EUR",
+                rate: parseFloat(currencyInfo.EUR)
             };
             break;
         default: return  null
@@ -469,11 +478,57 @@ async function checkAmount(currency, amount) {
  *
  * @returns {{amd: number, usd: number}}
  */
-function getCurrencyInfo() {
-    return {
-        amd: 1,
-        usd: 483
-    }
+async function getCurrencyInfo() {
+    let currentDate = moment().format("YYYY-MM-DD");
+
+    let documentInfo = {};
+    documentInfo.collectionName = "exchangeRate";
+    documentInfo.filterInfo = {"date" : currentDate};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (docInfo !== null) {
+                    resolve(docInfo.data)
+                }
+            })
+            .then(getDailyRate)
+            .then(dailyRateInfo => {
+                documentInfo.documentInfo = {
+                    date: currentDate,
+                    data: dailyRateInfo
+                };
+
+                mongoRequests.insertDocument(documentInfo)
+                    .then(resolve,reject);
+
+                resolve(dailyRateInfo);
+            })
+    });
+
+}
+
+/**
+ *
+ * @returns {Promise<any>}
+ */
+async function getDailyRate() {
+    return new Promise((resolve, reject) => {
+        request('http://cb.am/latest.json.php', function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                let rateObject = JSON.parse(body);
+
+                // append AMD info
+                rateObject["AMD"] = "1";
+
+                resolve(rateObject);
+            }
+            else {
+                reject(error)
+            }
+        });
+    });
 }
 
 /**

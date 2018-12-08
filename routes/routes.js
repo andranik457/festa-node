@@ -6,6 +6,7 @@
 const router    = require("express").Router();
 const url       = require('url');
 const userFunc  = require("../modules/user");
+const Helper    = require("../modules/helper");
 const winston   = require("winston");
 
 /**
@@ -58,6 +59,24 @@ router.post("/user/login", (req, res) => {
             res.status(err.error.code);
             return res.json(err.error);
         })
+});
+
+/**
+ * Get exchange rate info
+ */
+router.get("/exchangeRate", async (req, res, next) => {
+    try {
+        res.send({
+            code: 200,
+            status: "OK",
+            message: "Daily rate info!",
+            result : await Helper.getCurrencyInfo()
+        })
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
 });
 
 /**
