@@ -490,21 +490,31 @@ async function getCurrencyInfo() {
         mongoRequests.findDocument(documentInfo)
             .then(docInfo => {
                 if (docInfo !== null) {
-                    resolve(docInfo.data)
+                    return docInfo.data
+                }
+                else {
+                    return new Promise((resolve, reject) => {
+                        getDailyRate()
+                            .then(dailyRateInfo => {
+                                documentInfo.documentInfo = {
+                                    date: currentDate,
+                                    data: dailyRateInfo
+                                };
+
+                                mongoRequests.insertDocument(documentInfo)
+                                    .then(resolve,reject);
+
+                                return dailyRateInfo;
+                            })
+                            .then(dailyRateInfo => {
+                                resolve(dailyRateInfo)
+                            })
+                            .catch(reject)
+                    })
                 }
             })
-            .then(getDailyRate)
-            .then(dailyRateInfo => {
-                documentInfo.documentInfo = {
-                    date: currentDate,
-                    data: dailyRateInfo
-                };
-
-                mongoRequests.insertDocument(documentInfo)
-                    .then(resolve,reject);
-
-                resolve(dailyRateInfo);
-            })
+            .then(resolve)
+            .catch(reject)
     });
 
 }

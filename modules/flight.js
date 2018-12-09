@@ -428,23 +428,7 @@ function getFlights(data) {
     documentInfo.collectionName = "flights";
     documentInfo.filterInfo = {status: data.body.status || {$exists: true}};
     documentInfo.optionInfo = {sort: {createdAt: -1}};
-    documentInfo.projectionInfo = {
-        from: 1,
-        to: 1,
-        startDate: 1,
-        startDateTimeZone: 1,
-        endDate: 1,
-        endDateTimeZone: 1,
-        flightNumber: 1,
-        airline: 1,
-        numberOfSeats: 1,
-        currency: 1,
-        duration: 1,
-        status: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        deletedAt: 1
-    };
+    documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
@@ -467,19 +451,7 @@ function getFlight(data) {
     let documentInfo = {};
     documentInfo.collectionName = "flights";
     documentInfo.filterInfo = {_id: ObjectID(data.flightId)};
-    documentInfo.projectionInfo = {
-        _id: 0,
-        from: 1,
-        to: 1,
-        startDate: 1,
-        endDate: 1,
-        flightNumber: 1,
-        airline: 1,
-        numberOfSeats: 1,
-        currency: 1,
-        duration: 1,
-        createdAt: 1
-    };
+    documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
