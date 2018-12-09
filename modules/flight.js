@@ -299,10 +299,6 @@ const flight = {
         };
 
         return new Promise((resolve, reject) => {
-            if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
-            }
-
             if (!ObjectID.isValid(data.flightId)) {
                 reject(errorTexts.mongId)
             }

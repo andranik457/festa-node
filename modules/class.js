@@ -401,9 +401,31 @@ const classInfo = {
                 })
                 .catch(reject)
         })
+    },
+
+    getClassByClassId: req => {
+        let data = {
+            userInfo: req.userInfo,
+            classId: req.params.classId.toString()
+        };
+
+        return new Promise((resolve, reject) => {
+            if (!ObjectID.isValid(data.classId)) {
+                reject(errorTexts.mongId)
+            }
+
+            getClassesByClassId(data)
+                .then(data => {
+                    resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "Flight info successfully goten!",
+                        data: data.result
+                    })
+                })
+                .catch(reject)
+        })
     }
-
-
 };
 
 module.exports = classInfo;
@@ -582,3 +604,21 @@ function getClassesByFlightId(data) {
             .catch(reject)
     });
 }
+
+function getClassesByClassId(data) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {_id: ObjectID(data.classId)};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                data.result = docInfo;
+
+                resolve(data)
+            })
+            .catch(reject)
+    });
+}
+

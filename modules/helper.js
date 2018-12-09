@@ -20,6 +20,7 @@ const helper = {
     decodeToken,
     getVerificationToken,
     getNewUserId,
+    getNewPnrId,
     validateData,
     getUserUpdateableFieldsByRole,
     generateValidationFields,
@@ -133,12 +134,29 @@ function getNewUserId(data) {
     });
 }
 
+async function getNewPnrId() {
+    let documentInfo = {};
+    documentInfo.collectionName = "autoincrement";
+    documentInfo.filterInfo = {"type" : "pnr"};
+    documentInfo.updateInfo = {$inc: {sequenceId: 1}};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(docInfo => {
+
+                docInfo > 0
+                    ? reject(errorTexts.userNewId)
+                    : resolve(docInfo.value.sequenceId)
+            })
+    });
+}
+
 /**
  *
  * @param data
  * @returns {Promise<any>}
  */
-function validateData(data) {
+async function validateData(data) {
     const validationFields = data.editableFields;
     const checkData = data.editableFieldsValues;
 
@@ -202,7 +220,7 @@ function validateData(data) {
                     }
                 }
 
-                if ("number" === validationFields[field].type) {
+                if (("number" === validationFields[field].type) && (checkData[field] !== undefined)) {
                     if (!numberValidate.test(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " can contain only numbers";
                     }
@@ -224,7 +242,7 @@ function validateData(data) {
             }
 
             // Min Length
-            if (typeof validationFields[field].minLength !== "undefined") {
+            if ((typeof validationFields[field].minLength !== "undefined") && (checkData[field] !== undefined)) {
                 if (checkData[field].length < validationFields[field].minLength) {
                     errorMessage[field] = validationFields[field].name + " need to have at last " + validationFields[field].minLength + " characters.";
                     continue;
@@ -232,7 +250,7 @@ function validateData(data) {
             }
 
             // Max Length
-            if (typeof validationFields[field].maxLength !== "undefined") {
+            if ((typeof validationFields[field].maxLength !== "undefined") && (checkData[field] !== undefined)) {
                 if (checkData[field].length > validationFields[field].maxLength) {
                     errorMessage[field] = validationFields[field].name + " need to have max " + validationFields[field].maxLength + " characters.";
                     continue;

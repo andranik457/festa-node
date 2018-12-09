@@ -65,6 +65,12 @@ const text = {
         code: 400,
         status: "error",
         message: "Start Date can't be greater than End Date!"
+    },
+
+    incorrectTravelType: {
+        code: 400,
+        status: "error",
+        message: "Please Input correct travel type!"
     }
 
 };
