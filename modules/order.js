@@ -27,7 +27,7 @@ const orderInfo = {
         if (400 === possibleFields.code) {
             return possibleFields;
         }
-        // console.log(possibleFields);
+
         let data = {
             body: req.body,
             userInfo: req.userInfo,
@@ -38,16 +38,35 @@ const orderInfo = {
 
         data = await Helper.validateData(data);
 
-        // check travel type
-        if (data.body.travelType === travelTypes.oneWay) {
-            let oneWayTripInfo = await oneWayTripData(data);
-            data.tripInfo = oneWayTripInfo;
+        // calculate passengers count | if greater 9 return error
+        let passengersCount = await calculatePassengersCount(data);
+        if (passengersCount > 9) {
+            return errorTexts.incorrectPassengersCount;
+        }
+        else {
+            data.passengersCount = passengersCount;
         }
 
-        // save info and return data
-        let result = await createPreOrder(data);
-        // console.log(result);
-        return result;
+        // check travel type
+        if (data.body.travelType === travelTypes.oneWay) {
+            data.tripInfo = await oneWayTripData(data);
+
+            // save info and return data
+            return await createOneWayPreOrder(data);
+        }
+        else if ((data.body.travelType === travelTypes.roundTrip) || (data.body.travelType === travelTypes.multiDestination)) {
+            data.tripInfo = await twoWayTripData(data);
+
+            if (_.has(data.tripInfo, "code")) {
+                return data.tripInfo;
+            }
+
+            // create two way pre-order
+            return await createTwoWayPreOrder(data);
+        }
+        else {
+            return errorTexts.incorrectTravelType
+        }
 
     }
 
@@ -125,14 +144,14 @@ async function createValidateFormDependTravelType(body) {
                 maxLength: 24,
                 required: true
             },
-            destinationFlightId: {
+            returnFlightId: {
                 name: "Destination FlightId",
                 type: "text",
                 minLength: 24,
                 maxLength: 24,
                 required: true
             },
-            destinationClassId: {
+            returnClassId: {
                 name: "Destination ClassId",
                 type: "text",
                 minLength: 24,
@@ -182,43 +201,15 @@ async function createValidateFormDependTravelType(body) {
                 maxLength: 24,
                 required: true
             },
-            destinationFlightId: {
+            returnFlightId: {
                 name: "Destination FlightId",
                 type: "text",
                 minLength: 24,
                 maxLength: 24,
                 required: true
             },
-            destinationClassId: {
+            returnClassId: {
                 name: "Destination ClassId",
-                type: "text",
-                minLength: 24,
-                maxLength: 24,
-                required: true
-            },
-            departure1FlightId: {
-                name: "Departure1 FlightId",
-                type: "text",
-                minLength: 24,
-                maxLength: 24,
-                required: true
-            },
-            departure1ClassId: {
-                name: "Departure1 ClassId",
-                type: "text",
-                minLength: 24,
-                maxLength: 24,
-                required: true
-            },
-            destination1FlightId: {
-                name: "Destination1 FlightId",
-                type: "text",
-                minLength: 24,
-                maxLength: 24,
-                required: true
-            },
-            destination1ClassId: {
-                name: "Destination1 ClassId",
                 type: "text",
                 minLength: 24,
                 maxLength: 24,
@@ -303,26 +294,264 @@ async function oneWayTripData(data) {
     };
 }
 
-async function createPreOrder(data) {
-    // create PNR for pre-order
-    let pnr = await Helper.getNewPnrId();
-    console.log(pnr);
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
+async function twoWayTripData(data) {
+    if (
+        !ObjectID.isValid(data.body.departureFlightId) ||
+        !ObjectID.isValid(data.body.departureClassId) ||
+        !ObjectID.isValid(data.body.returnFlightId) ||
+        !ObjectID.isValid(data.body.returnClassId)
+    ) {
+        return errorTexts.mongId;
+    }
 
-    let currentTime = Math.floor(Date.now() / 1000);
+    let [
+        departureFlightInfo,
+        departureClassInfo,
+        returnFlightInfo,
+        returnClassInfo
+    ] = await Promise.all([
+        flightFunc.getFlight({
+            userInfo: data.userInfo,
+            params: {flightId: data.body.departureFlightId}
+        }),
+        classFunc.getClassByClassId({
+            userInfo: data.userInfo,
+            params: {classId: data.body.departureClassId}
+        }),
+        flightFunc.getFlight({
+            userInfo: data.userInfo,
+            params: {flightId: data.body.returnFlightId}
+        }),
+        classFunc.getClassByClassId({
+            userInfo: data.userInfo,
+            params: {classId: data.body.returnClassId}
+        })
+    ]);
 
-    let preOrderInfo = {
-        pnr:        pnr,
-        travelType: data.tripInfo.travelType,
-        usedPlaces: 2,
-        flightInfo: data.tripInfo.departureFlightInfo,
-        classInfo:  data.tripInfo.departureClassInfo,
-        updatedAt:  currentTime,
-        createdAt:  currentTime
-    };
+    if (departureFlightInfo.data.airline !== returnFlightInfo.data.airline) {
+        return errorTexts.differentAirlines;
+    }
+    else {
+        return {
+            travelType:             travelTypes.oneWay,
+            departureFlightInfo:    departureFlightInfo.data,
+            departureClassInfo:     departureClassInfo.data,
+            returnFlightInfo:       returnFlightInfo.data,
+            returnClassInfo:        returnClassInfo.data
+        };
+    }
 
+}
+
+
+/**
+ *
+ * @param data
+ * @returns {Promise<number>}
+ */
+async function calculatePassengersCount(data) {
+    let passengersCount = 0;
+
+    if (data.body.passengerTypeAdults) {
+        passengersCount += parseInt(data.body.passengerTypeAdults);
+    }
+    if (data.body.passengerTypeChild) {
+        passengersCount += parseInt(data.body.passengerTypeChild);
+    }
+    if (data.body.passengerTypeInfant) {
+        passengersCount += parseInt(data.body.passengerTypeInfant);
+    }
+
+    return passengersCount;
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
+async function createOneWayPreOrder(data) {
+    if (data.tripInfo.departureFlightInfo == null || data.tripInfo.departureClassInfo == null) {
+        return Promise.reject({
+            code: 400,
+            status: "error",
+            message: "Incorrect Flight and/or Class Id"
+        });
+    }
+    else {
+        let onHolPlaces = await getOnHoldPlaceCountForClass(data.tripInfo.departureClassInfo._id);
+        console.log(onHolPlaces);
+        if ((data.tripInfo.departureClassInfo.availableSeats - onHolPlaces.count) < data.passengersCount) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "In this class no enough place"
+            });
+        }
+
+        // add data to on hold
+        await addPlacesToOnHold(data.tripInfo.departureClassInfo, data.passengersCount);
+
+        let pnr = await Helper.getNewPnrId();
+
+        let currentTime = Math.floor(Date.now() / 1000);
+
+        let preOrderInfo = {
+            pnr:                    pnr,
+            travelType:             data.tripInfo.travelType,
+            usedPlaces:             data.passengersCount,
+            departureFlightInfo:    data.tripInfo.departureFlightInfo,
+            departureClassInfo:     data.tripInfo.departureClassInfo,
+            updatedAt:              currentTime,
+            createdAt:              currentTime
+        };
+
+        let documentInfo = {};
+        documentInfo.collectionName = "preOrders";
+        documentInfo.documentInfo = preOrderInfo;
+
+        return new Promise((resolve, reject) => {
+            mongoRequests.insertDocument(documentInfo)
+                .then(insertRes => {
+                    insertRes.insertedCount === 1
+                        ? resolve({
+                            code: 200,
+                            status: "Success",
+                            message: "",
+                            data: preOrderInfo
+                        })
+                        : reject(errorTexts.cantSaveDocumentToMongo)
+                })
+        });
+    }
+}
+
+async function createTwoWayPreOrder(data) {
+    if (data.tripInfo.departureFlightInfo == null
+        || data.tripInfo.departureClassInfo == null
+        || data.tripInfo.returnFlightInfo == null
+        || data.tripInfo.returnClassInfo == null) {
+        return Promise.reject({
+            code: 400,
+            status: "error",
+            message: "Incorrect Flight and/or Class Id"
+        });
+    }
+    else {
+        let [departureOnHoldPlaces, returnOnHoldPlaces] = await Promise.all([
+            getOnHoldPlaceCountForClass(data.tripInfo.departureClassInfo._id),
+            getOnHoldPlaceCountForClass(data.tripInfo.returnClassInfo._id)
+        ]);
+
+        if (((data.tripInfo.departureClassInfo.availableSeats - departureOnHoldPlaces.count) < data.passengersCount) ||
+            ((data.tripInfo.returnClassInfo.availableSeats - returnOnHoldPlaces.count) < data.passengersCount)) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "In this class no enough place"
+            });
+        }
+
+        // add data to on hold
+        await Promise.all([
+            addPlacesToOnHold(data.tripInfo.departureClassInfo, data.passengersCount),
+            addPlacesToOnHold(data.tripInfo.returnClassInfo, data.passengersCount)
+        ]);
+
+        // get new PNR
+        let pnr = await Helper.getNewPnrId();
+
+        let currentTime = Math.floor(Date.now() / 1000);
+        let preOrderInfo = {
+            pnr:                    pnr,
+            travelType:             data.tripInfo.travelType,
+            usedPlaces:             data.passengersCount,
+            departureFlightInfo:    data.tripInfo.departureFlightInfo,
+            departureClassInfo:     data.tripInfo.departureClassInfo,
+            returnFlightInfo:       data.tripInfo.departureFlightInfo,
+            returnClassInfo:        data.tripInfo.departureClassInfo,
+            updatedAt:              currentTime,
+            createdAt:              currentTime
+        };
+
+        let documentInfo = {};
+        documentInfo.collectionName = "preOrders";
+        documentInfo.documentInfo = preOrderInfo;
+
+        return new Promise((resolve, reject) => {
+            mongoRequests.insertDocument(documentInfo)
+                .then(insertRes => {
+                    insertRes.insertedCount === 1
+                        ? resolve({
+                            code: 200,
+                            status: "Success",
+                            message: "",
+                            data: preOrderInfo
+                        })
+                        : reject(errorTexts.cantSaveDocumentToMongo)
+                })
+        });
+    }
+
+
+}
+
+/**
+ *
+ * @param classId
+ * @returns {Promise<any>}
+ */
+async function getOnHoldPlaceCountForClass(classId) {
     let documentInfo = {};
-    documentInfo.collectionName = "preOrders";
-    documentInfo.documentInfo = preOrderInfo;
+    documentInfo.collectionName = "onHold";
+    documentInfo.filterInfo = {
+        classId: classId.toString()
+    };
+    documentInfo.projectionInfo = {};
+    documentInfo.optionInfo = {};
+
+    let onHoldPlaces = 0;
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+
+                _.each(documents, docInfo => {
+                    onHoldPlaces = onHoldPlaces + docInfo['count']
+                });
+
+                if (onHoldPlaces) {
+                    resolve({
+                        count: onHoldPlaces
+                    })
+                }
+                else {
+                    resolve({
+                        count: onHoldPlaces
+                    })
+                }
+            })
+    });
+}
+
+/**
+ *
+ * @param classInfo
+ * @param placesCount
+ * @returns {Promise<any>}
+ */
+async function addPlacesToOnHold(classInfo, placesCount) {
+    let documentInfo = {};
+    documentInfo.collectionName = "onHold";
+    documentInfo.documentInfo = {
+        classId: classInfo._id.toString(),
+        count: placesCount
+    };
 
     return new Promise((resolve, reject) => {
         mongoRequests.insertDocument(documentInfo)
@@ -332,7 +561,6 @@ async function createPreOrder(data) {
                         code: 200,
                         status: "Success",
                         message: "",
-                        data: preOrderInfo
                     })
                     : reject(errorTexts.cantSaveDocumentToMongo)
             })

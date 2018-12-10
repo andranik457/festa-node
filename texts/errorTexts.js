@@ -71,6 +71,24 @@ const text = {
         code: 400,
         status: "error",
         message: "Please Input correct travel type!"
+    },
+
+    incorrectFlightAndOrClassId: {
+        code: 400,
+        status: "error",
+        message: "Incorrect Flight and/or Class Id"
+    },
+
+    incorrectPassengersCount: {
+        code: 400,
+        status: "error",
+        message: "Incorrect passengers count"
+    },
+
+    differentAirlines: {
+        code: 400,
+        status: "error",
+        message: "Airlines need to bee the same!"
     }
 
 };
