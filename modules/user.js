@@ -778,7 +778,7 @@ function loginUser(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
             .then(docInfo => {
-                if (null != docInfo && "notVerified" !== docInfo.status) {
+                if (null != docInfo && "notVerified" === docInfo.status) {
                     reject({
                         code: 403,
                         status: "error",
