@@ -89,6 +89,24 @@ const text = {
         code: 400,
         status: "error",
         message: "Airlines need to bee the same!"
+    },
+
+    passengerType: {
+        code: 400,
+        status: "error",
+        message: "Please select correct passenger type"
+    },
+
+    incorrectTicketValue: {
+        code: 400,
+        status: "error",
+        message: "Please check ticket value"
+    },
+
+    pnrNotFound: {
+        code: 400,
+        status: "error",
+        message: "Please check pnr and try again (pnr not found)"
     }
 
 };

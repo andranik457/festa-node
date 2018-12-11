@@ -68,9 +68,140 @@ const orderInfo = {
             return errorTexts.incorrectTravelType
         }
 
+    },
+
+    async order (req) {
+
+        // validate data
+        let possibleFields = {
+            pnr: {
+                name: "PNR",
+                type: "text",
+                minLength: 5,
+                maxLength: 24,
+                required: true
+            },
+            ticketStatus: {
+                name: "Ticket Status",
+                type: "text",
+                minLength: 5,
+                maxLength: 24,
+                required: true
+            },
+            comment: {
+                name: "Comment",
+                type: "text",
+                minLength: 1,
+                maxLength: 128,
+                required: true
+            },
+            contactPersonName: {
+                name: "Contact Person name",
+                type: "text",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            contactPersonSurname: {
+                name: "Contact Person surname",
+                type: "text",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            contactPersonEmail: {
+                name: "Contact Person email",
+                type: "email",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            contactPersonTelephone: {
+                name: "Contact Person telephone",
+                type: "telephone",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            passengersInfo: {
+                name: "Passengers Info",
+                type: "text",
+                minLength: 3,
+                maxLength: 512,
+                required: true
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body
+        };
+
+        data = await Helper.validateData(data);
+
+        let passengersInfo = JSON.parse(Buffer.from(req.body.passengersInfo, 'base64').toString('utf8'));
+
+        let passengerInfo = [];
+        for (let i in passengersInfo) {
+            let passengerValidateInfo = await createValidateFormDependPassengerType(passengersInfo[i]);
+
+            if (_.has(passengerValidateInfo, "code")) {
+                return passengerValidateInfo;
+            }
+            else {
+                possibleFields = passengerValidateInfo;
+
+                let data = {
+                    body: passengersInfo[i],
+                    userInfo: req.userInfo,
+                    possibleForm: possibleFields,
+                    editableFields: possibleFields,
+                    editableFieldsValues: passengersInfo[i]
+                };
+
+                // validate passenger data
+                await Helper.validateData(data);
+
+                passengerInfo.push(passengersInfo[i]);
+            }
+        }
+
+        // check pnr
+        let pnrInfo = await getPnrInfo(req.body.pnr);
+
+        // check ticket value
+        if (!(req.body.ticketStatus === "Booking" || req.body.ticketStatus === "Ticketing")) {
+            return errorTexts.incorrectTicketValue
+        }
+
+        let orderInfo = {
+            pnr:                    req.body.pnr,
+            travelInfo:             pnrInfo,
+            ticketStatus:           req.body.ticketStatus,
+            comment:                req.body.comment,
+            contactPersonInfo:      {
+                name:      req.body.contactPersonName,
+                surname:   req.body.contactPersonSurname,
+                email:     req.body.contactPersonEmail,
+                telephone: req.body.contactPersonTelephone,
+            },
+            passengerInfo:          passengerInfo
+        };
+
+        return Promise.resolve({
+            code: 200,
+            status: "Success",
+            message: "",
+            data: orderInfo
+        });
+
     }
 
 };
+
 
 module.exports = orderInfo;
 
@@ -244,6 +375,87 @@ async function createValidateFormDependTravelType(body) {
     }
     else {
         return errorTexts.incorrectTravelType;
+    }
+}
+
+/**
+ *
+ * @param body
+ * @returns {Promise<*>}
+ */
+async function createValidateFormDependPassengerType(body) {
+    if (_.isUndefined(body.passengerType)) {
+        return errorTexts.passengerType;
+    }
+    else if (body.passengerType === "Adults") {
+        return {
+            name: {
+                name: "Name",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            surname: {
+                name: "Surname",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            gender: {
+                name: "Gender",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+                required: true
+            },
+            passportNumber: {
+                name: "Passport number",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+                required: true
+            },
+        };
+    }
+    else if ((body.passengerType === "Child") || (body.passengerType === "Infant")) {
+        return {
+            name: {
+                name: "Name",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            surname: {
+                name: "Surname",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
+            gender: {
+                name: "Gender",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+            },
+            passportNumber: {
+                name: "Passport number",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+                required: true
+            },
+        };
+    }
+    else {
+        return errorTexts.passengerType;
     }
 }
 
@@ -431,6 +643,11 @@ async function createOneWayPreOrder(data) {
     }
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
 async function createTwoWayPreOrder(data) {
     if (data.tripInfo.departureFlightInfo == null
         || data.tripInfo.departureClassInfo == null
@@ -563,6 +780,30 @@ async function addPlacesToOnHold(classInfo, placesCount) {
                         message: "",
                     })
                     : reject(errorTexts.cantSaveDocumentToMongo)
+            })
+    });
+}
+
+/**
+ *
+ * @param pnr
+ * @returns {Promise<any>}
+ */
+async function getPnrInfo(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "preOrders";
+    documentInfo.filterInfo = {"pnr": parseInt(pnr)};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (null === docInfo) {
+                    reject(errorTexts.pnrNotFound)
+                }
+                else {
+                    resolve(docInfo)
+                }
             })
     });
 }

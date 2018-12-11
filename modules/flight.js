@@ -23,17 +23,15 @@ const flight = {
             from: {
                 name: "FROM (City & Airport)",
                 type: "text",
-                format: "latin",
                 minLength: 3,
-                maxLength: 64,
+                maxLength: 128,
                 required: true
             },
             to: {
                 name: "TO (City & Airport)",
                 type: "text",
-                format: "latin",
                 minLength: 3,
-                maxLength: 64,
+                maxLength: 128,
                 required: true
             },
             startDate: {
@@ -66,7 +64,7 @@ const flight = {
             },
             flightNumber: {
                 name: "Flight Number",
-                type: "number",
+                type: "text",
                 minLength: 3,
                 maxLength: 64,
                 required: true
@@ -127,17 +125,15 @@ const flight = {
             from: {
                 name: "FROM (City & Airport)",
                 type: "text",
-                format: "latin",
                 minLength: 3,
-                maxLength: 64,
+                maxLength: 128,
                 required: true
             },
             to: {
                 name: "TO (City & Airport)",
                 type: "text",
-                format: "latin",
                 minLength: 3,
-                maxLength: 64,
+                maxLength: 128,
                 required: true
             },
             startDate: {
@@ -170,7 +166,7 @@ const flight = {
             },
             flightNumber: {
                 name: "Flight Number",
-                type: "number",
+                type: "text",
                 minLength: 3,
                 maxLength: 64,
                 required: true

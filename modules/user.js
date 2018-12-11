@@ -778,7 +778,14 @@ function loginUser(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
             .then(docInfo => {
-                if (null != docInfo && "approved" !== docInfo.status) {
+                if (null != docInfo && "notVerified" !== docInfo.status) {
+                    reject({
+                        code: 403,
+                        status: "error",
+                        message: "You can't use this account. You need to verify your email address."
+                    })
+                }
+                else if (null != docInfo && "approved" !== docInfo.status) {
                     reject({
                         code: 403,
                         status: "error",

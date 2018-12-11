@@ -9,25 +9,24 @@ const orderFunc     = require("../modules/order");
 const winston       = require("winston");
 
 /**
- * Create Flight
+ * Make pre-order
  */
-// router.post("/create", (req, res) => {
-//     flightFunc.create(req)
-//         .then(result => {
-//             res.status(result.code);
-//             res.send(result)
-//         })
-//         .catch(err => {
-//             winston.log("error", err);
-//
-//             res.status(err.code);
-//             return res.json(err);
-//         });
-// });
-
 router.post("/pre-order", async (req, res, next) => {
     try {
         res.send(await orderFunc.preOrder(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+/**
+ * Make booking / order
+ */
+router.post("/order", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.order(req));
     }
     catch (err) {
         winston.log("error", err);
