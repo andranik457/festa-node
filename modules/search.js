@@ -219,6 +219,12 @@ const searchInfo = {
 
 module.exports = searchInfo;
 
+
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
 async function mainSearchResult(data) {
     // get available flights
     let availableFlights = await checkAvailableFlights(data);
@@ -510,21 +516,29 @@ async function checkAvailableClasses(data, flightsIds) {
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
-            .then(docInfo => {
+            .then(async docInfo => {
+
                 let classesInfo = {};
-                _.each(docInfo, classInfo => {
+                for (let i in docInfo) {
+                    let classInfo = docInfo[i];
+
                     if (!_.has(classesInfo, classInfo['flightId'])) {
                         classesInfo[classInfo['flightId']] = [];
                     }
 
-                    classesInfo[classInfo['flightId']].push(classInfo)
-                });
+
+                    // calculate class price
+                    let classFullInfo = await calculatePrices(classInfo, data);
+
+                    classesInfo[classFullInfo['flightId']].push(classFullInfo)
+                }
 
                 resolve(classesInfo)
             })
             .catch(reject)
     });
 }
+
 
 /**
  *
@@ -547,5 +561,129 @@ function generateResult(data) {
 
     return new Promise((resolve, reject) => {
         resolve(result)
+    });
+}
+
+async function calculatePrices(classInfo, data) {
+    // for one way
+    let priceInfo = {};
+
+    if (travelTypes.oneWay === data.body.travelType) {
+        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.cat);
+        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.cat);
+        priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+        // append prices to class
+        classInfo = await appendPricesToClass(priceInfo, classInfo, data);
+    }
+
+    else if (travelTypes.roundTrip === data.body.travelType) {
+        // check travel duration
+        let flightDuration = await getFlightDurationByFlightId(classInfo.flightId);
+
+        if (flightDuration > (15 * 86400)) {
+            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
+            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
+            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+            // append prices to class
+            classInfo = await appendPricesToClass(priceInfo, classInfo, data);
+        }
+        else if (flightDuration < (3 * 86400)) {
+            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
+            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
+            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+            // append prices to class
+            classInfo = await appendPricesToClass(priceInfo, classInfo, data);
+        }
+        else {
+            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat);
+            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat);
+            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+            // append prices to class
+            classInfo = await appendPricesToClass(priceInfo, classInfo, data);
+        }
+    }
+    else if (travelTypes.multiDestination === data.body.travelType) {
+        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
+        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
+        priceInfo['infantPrice'] = 0;
+
+        // append prices to class
+        classInfo = await appendPricesToClass(priceInfo, classInfo, data);
+    }
+
+    return classInfo;
+}
+
+/**
+ *
+ * @param priceInfo
+ * @param classInfo
+ * @param data
+ * @returns {Promise<*>}
+ */
+async function appendPricesToClass(priceInfo, classInfo, data) {
+    classInfo.prices = [];
+
+    // check travelers types
+    if (typeof data.body.passengerTypeAdults !== 'undefined') {
+        let adultPriceInfo = {
+            eachPrice:  priceInfo.adultPrice,
+            count:      data.body.passengerTypeAdults,
+            totalPrice: data.body.passengerTypeAdults * priceInfo.adultPrice
+        };
+
+        classInfo.prices.push({
+            adultPriceInfo: adultPriceInfo
+        })
+    }
+
+    if (typeof data.body.passengerTypeChild !== 'undefined') {
+        let childPriceInfo = {
+            eachPrice:  priceInfo.childPrice,
+            count:      data.body.passengerTypeChild,
+            totalPrice: data.body.passengerTypeChild * priceInfo.childPrice
+        };
+
+        classInfo.prices.push({
+            childPriceInfo: childPriceInfo
+        })
+    }
+
+    if (typeof data.body.passengerTypeInfant !== 'undefined') {
+        let infantPrice = {
+            eachPrice:  priceInfo.childPrice,
+            count:      data.body.passengerTypeInfant,
+            totalPrice: data.body.passengerTypeInfant * priceInfo.childPrice
+        };
+
+        classInfo.prices.push({
+            infantPrice: infantPrice
+        })
+    }
+
+    return classInfo;
+}
+
+/**
+ *
+ * @param flightId
+ * @returns {Promise<any>}
+ */
+async function getFlightDurationByFlightId(flightId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "flights";
+    documentInfo.filterInfo = {_id: ObjectID(flightId)};
+    documentInfo.projectionInfo = {duration: 1};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                resolve(docInfo.duration)
+            })
+            .catch(reject)
     });
 }

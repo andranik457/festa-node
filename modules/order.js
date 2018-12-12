@@ -74,6 +74,13 @@ const orderInfo = {
 
         // validate data
         let possibleFields = {
+            agentId: {
+                name: "AgentId",
+                type: "number",
+                minLength: 1,
+                maxLength: 10,
+                required: true
+            },
             pnr: {
                 name: "PNR",
                 type: "text",
