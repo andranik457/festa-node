@@ -30,7 +30,8 @@ const helper = {
     calculateFlightDuration,
     getEditableFields,
     getEditableFieldsValues,
-    getCurrencyInfo
+    getCurrencyInfo,
+    checkAmount
 };
 
 /**

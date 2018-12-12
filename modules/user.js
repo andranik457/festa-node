@@ -259,6 +259,11 @@ const user = {
         });
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
     getUserByUserId: req => {
         let data = {
             userId: req.params.userId.toString(),
@@ -645,6 +650,117 @@ const user = {
                 })
                 .catch(reject)
         });
+    },
+
+    /**
+     *
+     * @param req
+     * @returns {Promise<{code: number, status: string, message: string}|text.userRole|{code, status, message}>}
+     */
+    setCreditLimit: async (req) => {
+        // validate data
+        let possibleFields = {
+            amount: {
+                name: "Amount",
+                type: "number",
+                minLength: 1,
+                maxLength: 100,
+                required: true
+            },
+            currency: {
+                name: "Currency",
+                type: "text",
+                minLength: 3,
+                maxLength: 3,
+                required: true
+            },
+            description: {
+                name: "Description",
+                type: "text",
+                minLength: 1,
+                maxLength: 128,
+                required: true
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body,
+            checkedUserId: req.params.userId.toString()
+        };
+
+        // check user role
+        if ("Admin" !== data.userInfo.role) {
+            return errorTexts.userRole;
+        }
+
+        await Helper.validateData(data);
+
+        let localAmount = await Helper.checkAmount(data.body.currency, data.body.amount);
+
+        // get checked user info
+        let checkedUserInfo = await getUserInfoByIdMain(data.checkedUserId);
+        if (null === checkedUserInfo) {
+            return {
+                code: 400,
+                status: "error",
+                message: "Please check userId and try again! (User not found)"
+            }
+        }
+
+        // check user current max credit and current credit
+        if (checkedUserInfo.balance.currentCredit > localAmount.amount) {
+            return {
+                code: 400,
+                status: "error",
+                message: "You can't set max credit less than current credit!"
+            }
+        }
+
+        // update user max credit | set to history
+        let currentDate = Math.floor(Date.now() / 1000);
+
+        let userUpdatedInfo = {};
+        userUpdatedInfo.collectionName = "users";
+        userUpdatedInfo.filterInfo = {userId: checkedUserInfo.userId};
+        userUpdatedInfo.updateInfo = {
+            "$set": {
+                "balance.maxCredit": localAmount.amount
+            }
+        };
+
+        let historyInfo = {};
+        historyInfo.collectionName = "balanceHistory";
+        historyInfo.documentInfo = {
+            type:           "Changed max credit limit",
+            oldLimit:       checkedUserInfo.balance.currentCredit,
+            newLimit:       localAmount.amount,
+            userId:         checkedUserInfo.userId,
+            currency:       localAmount.currency,
+            rate:           localAmount.rate,
+            amount:         localAmount.amount,
+            description:    data.body.description,
+            createdAt:      currentDate
+        };
+
+        let result = await Promise.all([
+            mongoRequests.updateDocument(userUpdatedInfo),
+            mongoRequests.insertDocument(historyInfo),
+        ]);
+
+        if (result[0].ok === 1 && result[1].result.ok === 1) {
+            return {
+                core: 200,
+                status: "success",
+                message: "User max credit successfully updated!"
+            }
+        }
+        else {
+            return errorTexts.forEnyCase
+        }
     }
 
 };
@@ -1175,4 +1291,22 @@ function unsetUserToken(data) {
                 })
             })
     })
+}
+
+async function getUserInfoByIdMain(userId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "users";
+    documentInfo.filterInfo = {userId: userId};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                resolve(docInfo)
+            })
+            .catch(err => {
+                winston('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
 }

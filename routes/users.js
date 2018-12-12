@@ -121,6 +121,19 @@ router.post("/use-balance/:userId", (req, res) => {
 });
 
 /**
+ * Set user credit balance
+ */
+router.post("/set-credit-limit/:userId", async (req, res, next) => {
+    try {
+        res.send(await userFunc.setCreditLimit(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+/**
  * User balance change history
  */
 router.post("/balance-history/:userId", (req, res) => {
