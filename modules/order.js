@@ -604,7 +604,7 @@ async function createOneWayPreOrder(data) {
     }
     else {
         let onHolPlaces = await getOnHoldPlaceCountForClass(data.tripInfo.departureClassInfo._id);
-        console.log(onHolPlaces);
+
         if ((data.tripInfo.departureClassInfo.availableSeats - onHolPlaces.count) < data.passengersCount) {
             return Promise.reject({
                 code: 400,

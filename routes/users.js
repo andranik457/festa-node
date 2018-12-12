@@ -78,7 +78,6 @@ router.post("/get-users", (req, res) => {
 router.post("/update/:userId", (req, res) => {
     userFunc.updateUserByAdmin(req)
         .then(result => {
-            console.log(result);
             res.send(result)
         })
         .catch(err => {

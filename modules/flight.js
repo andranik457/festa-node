@@ -425,7 +425,6 @@ function getFlights(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
             .then(docInfo => {
-                console.log(docInfo);
                 data.result = docInfo;
 
                 resolve(data)
