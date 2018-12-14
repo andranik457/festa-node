@@ -6,11 +6,13 @@
 const _             = require("underscore");
 const winston       = require("winston");
 const ObjectID      = require('mongodb').ObjectID;
+const moment        = require("moment");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const Helper        = require("../modules/helper");
 const FlightHelper  = require("../modules/flightHelper");
 const flightFunc    = require("../modules/flight");
 const classFunc     = require("../modules/class");
+const userHelper    = require("../modules/userHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const travelTypes = {
@@ -177,13 +179,31 @@ const orderInfo = {
         }
 
         // check pnr
-        let pnrInfo = await getPnrInfo(req.body.pnr);
+        let pnrInfo = await Helper.asyncGetPnrInfo(req.body.pnr);
 
         // check ticket value
         if (!(req.body.ticketStatus === "Booking" || req.body.ticketStatus === "Ticketing")) {
             return errorTexts.incorrectTicketValue
         }
 
+        // check Agent Info
+        let agentInfo = await userHelper.asyncGetUserInfoById(req.body.agentId);
+        if (null === agentInfo) {
+            return {
+                code: 400,
+                status: "error",
+                message: "User with this id not exists!"
+            }
+        }
+        else if ("approved" !== agentInfo.status) {
+            return {
+                code: 400,
+                status: "error",
+                message: "you can't make this action. Check user status (only for approved users)"
+            }
+        }
+
+        // create final order
         let orderInfo = {
             pnr:                    req.body.pnr,
             travelInfo:             pnrInfo,
@@ -490,11 +510,9 @@ async function oneWayTripData(data) {
         data.classId = data.body.departureClassId;
     }
 
-
     let [
         flightInfo,
         classInfo,
-        // availableInfo
     ] = await Promise.all([
         flightFunc.getFlight({
             userInfo: data.userInfo,
@@ -506,10 +524,12 @@ async function oneWayTripData(data) {
         })
     ]);
 
+    let classPriceInfo = await Helper.asyncGetClassPrice(classInfo.data, data, flightInfo.data.currency);
+
     return {
         travelType:             travelTypes.oneWay,
         departureFlightInfo:    flightInfo.data,
-        departureClassInfo:     classInfo.data
+        departureClassInfo:     classPriceInfo
     };
 }
 
@@ -552,6 +572,9 @@ async function twoWayTripData(data) {
         })
     ]);
 
+    let departureClassPriceInfo = await Helper.asyncGetClassPrice(departureClassInfo.data, data, departureFlightInfo.data.currency);
+    let returnClassPriceInfo = await Helper.asyncGetClassPrice(returnClassInfo.data, data, returnFlightInfo.data.currency);
+
     if (departureFlightInfo.data.airline !== returnFlightInfo.data.airline) {
         return errorTexts.differentAirlines;
     }
@@ -559,9 +582,9 @@ async function twoWayTripData(data) {
         return {
             travelType:             travelTypes.oneWay,
             departureFlightInfo:    departureFlightInfo.data,
-            departureClassInfo:     departureClassInfo.data,
+            departureClassInfo:     departureClassPriceInfo,
             returnFlightInfo:       returnFlightInfo.data,
-            returnClassInfo:        returnClassInfo.data
+            returnClassInfo:        returnClassPriceInfo
         };
     }
 

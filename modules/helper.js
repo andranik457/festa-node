@@ -14,6 +14,11 @@ const jwt               = require("jsonwebtoken");
 const successTexts      = require("../texts/successTexts");
 const errorTexts        = require("../texts/errorTexts");
 const request           = require('request');
+const travelTypes = {
+    oneWay: "One Way",
+    roundTrip: "Round Trip",
+    multiDestination: "Multi Destination"
+};
 
 const helper = {
     getTokenInfo,
@@ -31,7 +36,10 @@ const helper = {
     getEditableFields,
     getEditableFieldsValues,
     getCurrencyInfo,
-    checkAmount
+    checkAmount,
+    asyncGetClassPrice,
+    asyncGetPnrInfo,
+    asyncGetExchangeRateByDate
 };
 
 /**
@@ -144,10 +152,9 @@ async function getNewPnrId() {
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(docInfo => {
-
                 docInfo > 0
                     ? reject(errorTexts.userNewId)
-                    : resolve(docInfo.value.sequenceId)
+                    : resolve('F' + docInfo.value.sequenceId)
             })
     });
 }
@@ -705,6 +712,216 @@ async function getEditableFieldsValues(data) {
 
     data.editableFieldsValues = editableFieldsValues
     return data;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+async function asyncGetClassPrice(classInfo, data, currency) {
+    // for one way
+    let priceInfo = {};
+
+    if (travelTypes.oneWay === data.body.travelType) {
+        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.cat);
+        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.cat);
+        priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+        // append prices to class
+        classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
+    }
+
+    else if (travelTypes.roundTrip === data.body.travelType) {
+        // check travel duration
+        let flightDuration = await asyncPrivateAppendPricesToClass(classInfo.flightId);
+
+        if (flightDuration > (15 * 86400)) {
+            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
+            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
+            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+            // append prices to class
+            classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
+        }
+        else if (flightDuration < (3 * 86400)) {
+            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
+            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
+            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+            // append prices to class
+            classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
+        }
+        else {
+            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat);
+            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat);
+            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+
+            // append prices to class
+            classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
+        }
+    }
+    else if (travelTypes.multiDestination === data.body.travelType) {
+        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
+        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
+        priceInfo['infantPrice'] = 0;
+
+        // append prices to class
+        classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
+    }
+
+    return classInfo;
+
+}
+
+async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency) {
+    classInfo.prices = [];
+
+    let priceInfoWithRate = await asyncPrivatePriceInfoWithRate(priceInfo, currency);
+
+    // check passenger types
+    if (typeof data.body.passengerTypeAdults !== 'undefined') {
+        let adultPriceInfo = {
+            eachPrice:                  priceInfoWithRate.adultPrice,
+            eachPriceFlightCurrency:    priceInfoWithRate.adultPriceFlightCurrency,
+            count:                      data.body.passengerTypeAdults,
+            totalPrice:                 Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPrice) * 100) /100,
+            totalPriceFlightCurrency:   Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceFlightCurrency) * 100) /100
+        };
+
+        classInfo.prices.push({
+            adultPriceInfo: adultPriceInfo
+        })
+    }
+
+    if (typeof data.body.passengerTypeChild !== 'undefined') {
+        let childPriceInfo = {
+            eachPrice:                  priceInfoWithRate.childPrice,
+            eachPriceFlightCurrency:    priceInfoWithRate.childPriceFlightCurrency,
+            count:                      data.body.passengerTypeChild,
+            totalPrice:                 Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPrice) * 100) /100,
+            totalPriceFlightCurrency:   Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceFlightCurrency) * 100) /100
+        };
+
+        classInfo.prices.push({
+            childPriceInfo: childPriceInfo
+        })
+    }
+
+    if (typeof data.body.passengerTypeInfant !== 'undefined') {
+        let infantPrice = {
+            eachPrice:                  priceInfoWithRate.infantPrice,
+            eachPriceFlightCurrency:    priceInfoWithRate.infantPriceFlightCurrency,
+            count:                      data.body.passengerTypeInfant,
+            totalPrice:                 Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPrice) * 100) / 100,
+            totalPriceFlightCurrency:   Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceFlightCurrency) * 100) / 100,
+        };
+
+        classInfo.prices.push({
+            infantPrice: infantPrice
+        })
+    }
+
+    classInfo.currencyInfo = {
+        date:       priceInfoWithRate.date,
+        currency:   priceInfoWithRate.currency,
+        rate:       priceInfoWithRate.rate,
+    };
+
+    return classInfo;
+}
+
+async function asyncGetPnrInfo(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "preOrders";
+    documentInfo.filterInfo = {"pnr": pnr.toString()};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (null === docInfo) {
+                    reject(errorTexts.pnrNotFound)
+                }
+                else {
+                    resolve(docInfo)
+                }
+            })
+    });
+}
+
+async function asyncGetExchangeRateByDate(currentDate) {
+    // get -1 day from selected date
+    let previousDayTimestamp = moment(currentDate).format("X") - 86400;
+    let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
+
+    let documentInfo = {};
+    documentInfo.collectionName = "exchangeRate";
+    documentInfo.filterInfo = {"date" : date};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (docInfo !== null) {
+                    resolve({
+                        date: date,
+                        data: docInfo.festaRate
+                    });
+                }
+                else {
+                    reject({
+                        code: 400,
+                        status: "error",
+                        message: "Something went wrong: Please try again later. No data about today exchange rate"
+                    })
+                }
+            })
+            .catch(reject)
+    });
+
+}
+
+async function asyncPrivatePriceInfoWithRate(price, currency) {
+    let currentDate = moment().format("YYYY-MM-DD");
+    let exchangeRate = await asyncGetExchangeRateByDate(currentDate);
+
+    let localRate = parseFloat(exchangeRate.data[currency]);
+
+    return {
+        date: currentDate,
+        currency: currency,
+        rate: localRate,
+        adultPrice:                 Math.round((price.adultPrice * localRate) * 100) / 100,
+        adultPriceFlightCurrency:   price.adultPrice,
+        childPrice:                 Math.round((price.childPrice * localRate) * 100) / 100,
+        childPriceFlightCurrency:   price.childPrice,
+        infantPrice:                Math.round((price.infantPrice * localRate) * 100) / 100,
+        infantPriceFlightCurrency:  price.infantPrice,
+    }
 }
 
 module.exports = helper;

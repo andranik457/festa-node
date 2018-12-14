@@ -403,6 +403,11 @@ const classInfo = {
         })
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
     getClassByClassId: req => {
         let data = {
             userInfo: req.userInfo,
