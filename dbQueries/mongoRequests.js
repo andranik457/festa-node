@@ -109,6 +109,13 @@ const mongoQueries = {
         });
     },
 
+    removeDocument : data => {
+        return new Promise((resolve, reject) => {
+            databaseFesta.collection(data.collectionName).remove(data.filterInfo)
+                .then(resolve, reject)
+        });
+    },
+
     /**
      *
      * @param data

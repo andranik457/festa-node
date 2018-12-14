@@ -7,6 +7,7 @@ const _                 = require("underscore");
 const winston           = require("winston");
 const moment            = require("moment");
 const momentTimeZone    = require('moment-timezone');
+const userHelper        = require("../modules/userHelper");
 const mongoRequests     = require("../dbQueries/mongoRequests");
 const config            = require("../config/config");
 const crypto            = require('crypto');
@@ -947,5 +948,8 @@ async function asyncPrivatePriceInfoWithRate(price, currency) {
         infantPriceFlightCurrency:  price.infantPrice,
     }
 }
+
+
+
 
 module.exports = helper;

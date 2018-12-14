@@ -13,6 +13,7 @@ const FlightHelper  = require("../modules/flightHelper");
 const flightFunc    = require("../modules/flight");
 const classFunc     = require("../modules/class");
 const userHelper    = require("../modules/userHelper");
+const classHelper   = require("../modules/classHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const travelTypes = {
@@ -203,11 +204,20 @@ const orderInfo = {
             }
         }
 
+        let ticketFullPrice = {};
+        if (pnrInfo.returnClassInfo.pricesTotalInfo) {
+            ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice + pnrInfo.returnClassInfo.pricesTotalInfo.totalPrice;
+            ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+            ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency
+        }
+
         // create final order
         let orderInfo = {
             pnr:                    req.body.pnr,
+            agentId:                req.body.agentId,
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
+            ticketPrice:            ticketFullPrice,
             comment:                req.body.comment,
             contactPersonInfo:      {
                 name:      req.body.contactPersonName,
@@ -218,12 +228,39 @@ const orderInfo = {
             passengerInfo:          passengerInfo
         };
 
-        return Promise.resolve({
-            code: 200,
-            status: "Success",
-            message: "",
-            data: orderInfo
-        });
+        // in case if ticket status is ticketing
+        //
+        // 1. save order
+        // 2. - from userBalance
+        // 3. - from onHoldPlayces
+        // 4. remove onHold document
+        //
+
+        let userBalance = await userHelper.asyncUseUserBalance(req.body.agentId, ticketFullPrice.total);
+        if (1 === userBalance.success) {
+            let order = await saveOrder(orderInfo);
+
+            if (1 === order.success) {
+                let oderInfo = await Promise.all([
+                    classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                    classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count),
+                    classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
+                ]);
+
+                return Promise.resolve({
+                    code: 200,
+                    status: "Success",
+                    message: "",
+                    data: orderInfo
+                });
+            }
+            else {
+                return Promise.reject(order);
+            }
+        }
+        else {
+            return Promise.reject(userBalance);
+        }
 
     }
 
@@ -833,6 +870,33 @@ async function getPnrInfo(pnr) {
                 }
                 else {
                     resolve(docInfo)
+                }
+            })
+    });
+}
+
+/**
+ *
+ * @param orderInfo
+ * @returns {Promise<any>}
+ */
+async function saveOrder(orderInfo) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.documentInfo = orderInfo;
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.insertDocument(documentInfo)
+            .then(docInfo => {
+                if (1 === docInfo.result.ok) {
+                    resolve({
+                        success: 1
+                    })
+                }
+                else {
+                    reject({
+                        error: "something went wrong"
+                    })
                 }
             })
     });
