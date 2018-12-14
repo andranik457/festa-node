@@ -22,26 +22,18 @@ function getFlight(data) {
     let documentInfo = {};
     documentInfo.collectionName = "flights";
     documentInfo.filterInfo = {_id: ObjectID(data.flightId)};
-    documentInfo.projectionInfo = {
-        _id: 0,
-        from: 1,
-        to: 1,
-        startDate: 1,
-        endDate: 1,
-        flightNumber: 1,
-        airline: 1,
-        numberOfSeats: 1,
-        currency: 1,
-        duration: 1,
-        createdAt: 1
-    };
+    documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
             .then(docInfo => {
-                data.flightInfo = docInfo;
-
-                resolve(data)
+                if (null === docInfo) {
+                    reject(errorTexts.incorrectFlightId)
+                }
+                else {
+                    data.flightInfo = docInfo;
+                    resolve(data)
+                }
             })
             .catch(reject)
     });

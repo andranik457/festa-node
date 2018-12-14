@@ -29,8 +29,16 @@ const classInfo = {
                 maxLength: 6,
                 required: true
             },
+            travelType: {
+                name: "Travel Type",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
             classType: {
-                name: "classType",
+                name: "Class Type",
                 type: "text",
                 format: "latin",
                 minLength: 3,
@@ -48,7 +56,7 @@ const classInfo = {
                 name: "Fare Rules",
                 type: "text",
                 minLength: 1,
-                maxLength: 500,
+                maxLength: 2048,
                 required: true
             },
             fareAdult: {
@@ -72,29 +80,15 @@ const classInfo = {
                 maxLength: 5,
                 required: true
             },
-            taxXAdult: {
-                name: "Tax X ADULT",
+            taxAdult: {
+                name: "Tax ADULT",
                 type: "number",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
-            taxYAdult: {
-                name: "Tax Y ADULT",
-                type: "number",
-                minLength: 1,
-                maxLength: 5,
-                required: true
-            },
-            taxXChd: {
-                name: "Tax X CHD",
-                type: "number",
-                minLength: 1,
-                maxLength: 5,
-                required: true
-            },
-            taxYChd: {
-                name: "Tax Y CHD",
+            taxChd: {
+                name: "Tax CHD",
                 type: "number",
                 minLength: 1,
                 maxLength: 5,
@@ -137,6 +131,27 @@ const classInfo = {
             },
             commChd: {
                 name: "Comm CHD",
+                type: "number",
+                minLength: 1,
+                maxLength: 5,
+                required: true
+            },
+            chargeFeeAdult: {
+                name: "Change Fee ADULT",
+                type: "number",
+                minLength: 1,
+                maxLength: 5,
+                required: true
+            },
+            chargeFeeChild: {
+                name: "Change Fee CHD",
+                type: "number",
+                minLength: 1,
+                maxLength: 5,
+                required: true
+            },
+            chargeFeeInfant: {
+                name: "Change Fee INF",
                 type: "number",
                 minLength: 1,
                 maxLength: 5,
@@ -447,22 +462,23 @@ function saveClass(data) {
         flightId:                   data.flightId,
         className:                  data.body.className,
         classType:                  data.body.classType,
-        numberOfSeats:              Number(data.body.numberOfSeats),
-        availableSeats:             Number(data.body.numberOfSeats),
+        numberOfSeats:              parseFloat(data.body.numberOfSeats),
+        availableSeats:             parseFloat(data.body.numberOfSeats),
         fareRules:                  data.body.fareRules,
-        fareAdult:                  data.body.fareAdult,
-        fareChd:                    data.body.fareChd,
-        fareInf:                    data.body.fareInf,
-        taxXAdult:                  data.body.taxXAdult,
-        taxYAdult:                  data.body.taxYAdult,
-        taxXChd:                    data.body.taxXChd,
-        taxYChd:                    data.body.taxYChd,
-        cat:                        data.body.cat,
-        surchargeMultiDestination:  data.body.surchargeMultiDestination,
-        surchargeLongRange:         data.body.surchargeLongRange,
-        surchargeShortRange:        data.body.surchargeShortRange,
-        commChd:                    data.body.commChd,
-        commAdult:                  data.body.commAdult,
+        fareAdult:                  parseFloat(data.body.fareAdult),
+        fareChd:                    parseFloat(data.body.fareChd),
+        fareInf:                    parseFloat(data.body.fareInf),
+        taxAdult:                   parseFloat(data.body.taxAdult),
+        taxChd:                     parseFloat(data.body.taxChd),
+        cat:                        parseFloat(data.body.cat),
+        surchargeMultiDestination:  parseFloat(data.body.surchargeMultiDestination),
+        surchargeLongRange:         parseFloat(data.body.surchargeLongRange),
+        surchargeShortRange:        parseFloat(data.body.surchargeShortRange),
+        commChd:                    parseFloat(data.body.commChd),
+        commAdult:                  parseFloat(data.body.commAdult),
+        chargeFeeAdult:             parseFloat(data.body.chargeFeeAdult),
+        chargeFeeChild:             parseFloat(data.body.chargeFeeChild),
+        chargeFeeInfant:            parseFloat(data.body.chargeFeeInfant),
         updatedAt:                  currentTime,
         createdAt:                  currentTime
     };

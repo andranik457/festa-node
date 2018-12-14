@@ -79,6 +79,12 @@ const text = {
         message: "Incorrect Flight and/or Class Id"
     },
 
+    incorrectFlightId: {
+        code: 400,
+        status: "error",
+        message: "Incorrect Flight Id"
+    },
+
     incorrectPassengersCount: {
         code: 400,
         status: "error",
