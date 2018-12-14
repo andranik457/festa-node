@@ -212,6 +212,8 @@ const orderInfo = {
         }
 
         // create final order
+        let currentDate = Math.floor(Date.now() / 1000);
+
         let orderInfo = {
             pnr:                    req.body.pnr,
             agentId:                req.body.agentId,
@@ -225,7 +227,9 @@ const orderInfo = {
                 email:     req.body.contactPersonEmail,
                 telephone: req.body.contactPersonTelephone,
             },
-            passengerInfo:          passengerInfo
+            passengerInfo: passengerInfo,
+            updatedAt: currentDate,
+            createdAt: currentDate
         };
 
         // in case if ticket status is ticketing
@@ -262,6 +266,59 @@ const orderInfo = {
             return Promise.reject(userBalance);
         }
 
+    },
+
+    async getOrders (req) {
+        let possibleFields = {
+            ticketStatus: {
+                name: "Ticket Status",
+                type: "text",
+                minLength: 5,
+                maxLength: 24,
+            },
+            agentId: {
+                name: "AgentId",
+                type: "text",
+                minLength: 5,
+                maxLength: 24,
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body
+        };
+
+        await Helper.validateData(data);
+
+        let orders = await getOrdersInfo(data);
+
+        return Promise.resolve({
+            code: 200,
+            status: "Success",
+            message: "",
+            data: orders
+        });
+    },
+
+    async getOrderByPnr (req) {
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            pnr: req.params.pnr.toString()
+        };
+
+        let orderInfo = await getOrderInfo(data);
+
+        return Promise.resolve({
+            code: 200,
+            status: "Success",
+            message: "",
+            data: orderInfo
+        });
     }
 
 };
@@ -898,6 +955,80 @@ async function saveOrder(orderInfo) {
                         error: "something went wrong"
                     })
                 }
+            })
+            .catch(err => {
+                reject(err)
+            })
+    });
+}
+
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
+async function getOrdersInfo(data) {
+    let ordersFilter = {
+        deletedAt: {
+            $exists: false
+        }
+    };
+
+    if (data.body.ticketStatus !== undefined)  {
+        ordersFilter.ticketStatus = data.body.ticketStatus;
+    }
+
+    if ("Admin" === data.userInfo.role) {
+        if (data.body.agentId !== undefined)  {
+            ordersFilter.agentId = data.body.agentId.toString();
+        }
+    }
+    else {
+        ordersFilter.agentId = data.userInfo.userId.toString();
+    }
+
+
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = ordersFilter;
+    documentInfo.projectionInfo = {};
+    documentInfo.optionInfo = {
+        $sort: {
+            cratedAt: -1
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                resolve(documents)
+            })
+            .catch(err => {
+                reject(err)
+            })
+    });
+}
+
+async function getOrderInfo(data) {
+    let orderFilter = {};
+    if ("Admin" !== data.userInfo.role) {
+        orderFilter.agentId = data.userInfo.userId.toString();
+    }
+    orderFilter.pnr = data.pnr;
+
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = orderFilter;
+    documentInfo.projectionInfo = {};
+    documentInfo.optionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(document => {
+                resolve(document)
+            })
+            .catch(err => {
+                reject(err)
             })
     });
 }

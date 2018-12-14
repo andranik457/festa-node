@@ -34,4 +34,24 @@ router.post("/order", async (req, res, next) => {
     }
 });
 
+router.post("/get-orders", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.getOrders(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+router.get("/get-order-by-pnr/:pnr", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.getOrderByPnr(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 module.exports = router;
