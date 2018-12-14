@@ -845,11 +845,35 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
         })
     }
 
-    classInfo.currencyInfo = {
-        date:       priceInfoWithRate.date,
-        currency:   priceInfoWithRate.currency,
-        rate:       priceInfoWithRate.rate,
+    let totalPrices = {
+        count: 0,
+        totalPrice: 0,
+        totalPriceFlightCurrency: 0
     };
+
+
+
+    let priceInfoTotal = null;
+    for (let i in classInfo.prices) {
+        if (undefined !== classInfo.prices[i].adultPriceInfo) {
+            priceInfoTotal = classInfo.prices[i].adultPriceInfo;
+        }
+        else if (undefined !== classInfo.prices[i].childPriceInfo) {
+            priceInfoTotal = classInfo.prices[i].childPriceInfo;
+        }
+        else if (undefined !== classInfo.prices[i].infantPriceInfo) {
+            priceInfoTotal = classInfo.prices[i].infantPriceInfo;
+        }
+
+        totalPrices.count = totalPrices.count + parseInt(priceInfoTotal['count']);
+        totalPrices.totalPrice = totalPrices.totalPrice + priceInfoTotal.totalPrice;
+        totalPrices.totalPriceFlightCurrency = totalPrices.totalPriceFlightCurrency + priceInfoTotal.totalPriceFlightCurrency
+    }
+
+    classInfo.pricesTotalInfo = totalPrices;
+    classInfo.pricesTotalInfo.date = priceInfoWithRate.date;
+    classInfo.pricesTotalInfo.currency = priceInfoWithRate.currency;
+    classInfo.pricesTotalInfo.rate = priceInfoWithRate.rate;
 
     return classInfo;
 }
