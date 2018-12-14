@@ -29,7 +29,6 @@ const searchInfo = {
                 departureFrom: {
                     name: "Departure From (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true
@@ -37,7 +36,6 @@ const searchInfo = {
                 destinationTo: {
                     name: "Destination to (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true

@@ -137,7 +137,7 @@ const orderInfo = {
                 name: "Passengers Info",
                 type: "text",
                 minLength: 3,
-                maxLength: 512,
+                maxLength: 2048,
                 required: true
             }
         };
