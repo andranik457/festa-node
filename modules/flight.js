@@ -41,13 +41,13 @@ const flight = {
                 maxLength: 64,
                 required: true
             },
-            startDateTimeZone: {
-                name: "Start Date TimeZone (Local time)",
-                type: "timeZone",
-                minLength: 3,
-                maxLength: 64,
-                required: true
-            },
+            // startDateTimeZone: {
+            //     name: "Start Date TimeZone (Local time)",
+            //     type: "timeZone",
+            //     minLength: 3,
+            //     maxLength: 64,
+            //     required: true
+            // },
             endDate: {
                 name: "End Date (Local time)",
                 type: "date",
@@ -55,13 +55,13 @@ const flight = {
                 maxLength: 64,
                 required: true
             },
-            endDateTimeZone: {
-                name: "End Date TimeZone (Local time)",
-                type: "timeZone",
-                minLength: 3,
-                maxLength: 64,
-                required: true
-            },
+            // endDateTimeZone: {
+            //     name: "End Date TimeZone (Local time)",
+            //     type: "timeZone",
+            //     minLength: 3,
+            //     maxLength: 64,
+            //     required: true
+            // },
             flightNumber: {
                 name: "Flight Number",
                 type: "text",

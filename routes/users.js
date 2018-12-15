@@ -25,6 +25,22 @@ router.get("/log-out", (req, res) => {
 });
 
 /**
+ * Remove user
+ */
+router.get("/remove/:userId", (req, res) => {
+    userFunc.remove(req)
+        .then(result => {
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+            //
+            res.status(err.code);
+            return res.json(err);
+        })
+});
+
+/**
  * Edi user personal info by usr
  */
 // router.post("/api/user/edit", (req, res) => {

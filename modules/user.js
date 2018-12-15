@@ -243,6 +243,52 @@ const user = {
         });
     },
 
+    remove: req => {
+        let data = {
+            userInfo: req.userInfo,
+            userId: req.params.userId.toString()
+        };
+
+        return new Promise((resolve, reject) => {
+            if ("Admin" !== data.userInfo.role) {
+                reject(errorTexts.userRole)
+            }
+
+            getUserById(data)
+                .then(data => {
+                    console.log(data.userDocInfo);
+                    if (null === data.userDocInfo) {
+                        reject({
+                            code: 400,
+                            status: "error",
+                            message: "Not found: please check user id and try again"
+                        })
+                    }
+                    else if ("notVerified" !== data.userDocInfo.status) {
+                        reject({
+                            code: 400,
+                            status: "error",
+                            message: "You can't remove this user: (already verified)"
+                        })
+                    }
+
+                    return data;
+                })
+                .then(removeUsers)
+                .then(data => {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        result: {
+                            users: data
+                        }
+                    })
+                })
+                .catch(reject)
+        });
+
+    },
+
     /**
      * Verify User
      * @param data
@@ -1311,3 +1357,19 @@ async function getUserInfoByIdMain(userId) {
     });
 }
 
+function removeUsers(data) {
+    let documentInfo = {};
+    documentInfo.collectionName = "users";
+    documentInfo.filterInfo = {userId: data.userDocInfo.userId};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.removeDocument(documentInfo)
+            .then(docInfo => {
+                resolve({success: 1})
+            })
+            .catch(err => {
+                winston('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
+}
