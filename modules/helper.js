@@ -627,49 +627,49 @@ async function useBalanceByAdmin(data) {
  * @returns {Promise<any>}
  */
 async function calculateFlightDuration(data) {
-    let startDateOffset = moment.tz.zone(data.body.startDateTimeZone).utcOffset(moment(data.body.startDate));
-    let endDateOffset = moment.tz.zone(data.body.endDateTimeZone).utcOffset(moment(data.body.endDate));
-
-    let startTime = moment.tz(data.body.startDate, "UTC");
-    let startTimeStamp = moment(startTime).format("X");
-
-    let endTime = moment.tz(data.body.endDate, "UTC");
-    let endTimestamp = moment(endTime).format("X");
-
-    let startDateTimestamp = startTimeStamp - startDateOffset*60;
-    let endDateTimestamp = endTimestamp - endDateOffset * 60;
+    // let startDateOffset = moment.tz.zone(data.body.startDateTimeZone).utcOffset(moment(data.body.startDate));
+    // let endDateOffset = moment.tz.zone(data.body.endDateTimeZone).utcOffset(moment(data.body.endDate));
+    //
+    // let startTime = moment.tz(data.body.startDate, "UTC");
+    // let startTimeStamp = moment(startTime).format("X");
+    //
+    // let endTime = moment.tz(data.body.endDate, "UTC");
+    // let endTimestamp = moment(endTime).format("X");
+    //
+    // let startDateTimestamp = startTimeStamp - startDateOffset*60;
+    // let endDateTimestamp = endTimestamp - endDateOffset * 60;
 
     return new Promise((resolve, reject) => {
 
-        if (startDateTimestamp >= endDateTimestamp) {
-            reject(errorTexts.incorrectStartEndDate)
-        }
-        else {
-            let flightDuration = endDateTimestamp - startDateTimestamp;
+        // if (startDateTimestamp >= endDateTimestamp) {
+        //     reject(errorTexts.incorrectStartEndDate)
+        // }
+        // else {
+        //     let flightDuration = endDateTimestamp - startDateTimestamp;
 
             let startDateInfo = data.body.startDate.split(" ");
             let endDateInfo = data.body.endDate.split(" ");
 
-            data.body.duration = flightDuration;
+            // data.body.duration = flightDuration;
             data.body.dateinfo  = {
                 startDate:              startDateInfo[0],
                 startTime:              startDateInfo[1],
                 endDate:                endDateInfo[0],
                 endTime:                endDateInfo[1],
-                startDateTimeZone:      data.body.startDateTimeZone,
-                endDateTimeZone:        data.body.endDateTimeZone,
-                startDateUtcOffset:     startDateOffset,
-                endDateUtcOffset:       endDateOffset,
-                startTimestamp:         parseInt(startTimeStamp),
-                endTimestamp:           parseInt(endTimestamp),
-                startDateTimeString:    data.body.startDate,
-                endDateTimeString:      data.body.endDate,
-                startDateTimeTimestamp: startDateTimestamp,
-                endDateTimeTimestamp:   endDateTimestamp,
+                // startDateTimeZone:      data.body.startDateTimeZone,
+                // endDateTimeZone:        data.body.endDateTimeZone,
+                // startDateUtcOffset:     startDateOffset,
+                // endDateUtcOffset:       endDateOffset,
+                // startTimestamp:         parseInt(startTimeStamp),
+                // endTimestamp:           parseInt(endTimestamp),
+                // startDateTimeString:    data.body.startDate,
+                // endDateTimeString:      data.body.endDate,
+                // startDateTimeTimestamp: startDateTimestamp,
+                // endDateTimeTimestamp:   endDateTimestamp,
             };
 
             resolve(data)
-        }
+        // }
 
     });
 

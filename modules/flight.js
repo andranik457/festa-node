@@ -69,10 +69,23 @@ const flight = {
                 maxLength: 64,
                 required: true
             },
+            duration: {
+                name: "Duration",
+                type: "number",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
             airline: {
                 name: "Airline",
                 type: "text",
-                format: "latin",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            airlineIataIcao: {
+                name: "Airline IATA ICAO",
+                type: "text",
                 minLength: 3,
                 length: 64,
                 required: true
