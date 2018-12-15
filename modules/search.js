@@ -21,10 +21,9 @@ const searchInfo = {
 
     search: req => {
 
-        let possibleFields = {};
-
         // check travel type
-        if (_.has(req.body.travelType) && req.body.travelType === travelTypes.oneWay) {
+        let possibleFields = {};
+        if (_.has(req.body, "travelType") && req.body.travelType === travelTypes.oneWay) {
             possibleFields = {
                 departureFrom: {
                     name: "Departure From (City & Airport)",
@@ -66,7 +65,7 @@ const searchInfo = {
                 }
             };
         }
-        else if (_.has(req.body.travelType) && req.body.travelType === travelTypes.roundTrip) {
+        else if (_.has(req.body, "travelType") && req.body.travelType === travelTypes.roundTrip) {
             possibleFields = {
                 departureFrom: {
                     name: "Departure From (City & Airport)",
@@ -116,7 +115,7 @@ const searchInfo = {
                 }
             };
         }
-        else {
+        else if (_.has(req.body, "travelType") && req.body.travelType === travelTypes.multiDestination) {
             possibleFields = {
                 departureFrom: {
                     name: "Departure From (City & Airport)",
@@ -181,6 +180,13 @@ const searchInfo = {
                     maxLength: 1,
                 }
             };
+        }
+        else {
+            return Promise.resolve({
+                code: 400,
+                status: "error",
+                message: "Please check correct travel type (One Way, Round Trip, Multi Destination)"
+            });
         }
 
         let data = {
@@ -278,45 +284,23 @@ async function mainSearchResult(data) {
 
 /**
  *
- * @param destination
- * @param city
- * @returns {Promise<any>}
- */
-async function getTimeZoneFromFlight(destination, city) {
-    let documentInfo = {};
-    documentInfo.collectionName = "flights";
-    documentInfo.filterInfo = {[destination]: city};
-    documentInfo.projectionInfo = {};
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.findDocument(documentInfo)
-            .then(docInfo => {
-                resolve(docInfo)
-            })
-            .catch(reject)
-    });
-}
-
-/**
- *
  * @param data
  * @returns {Promise<any>}
  */
 async function checkAvailableFlights(data) {
-    // get date from departureDate
-    if (_.has(data.editableFieldsValues, "departureDate")) {
+    // check if isset `departureDate` | split and get only date
+     if (_.has(data.editableFieldsValues, "departureDate")) {
         let splitDate = data.editableFieldsValues["departureDate"].split(' ');
         data.editableFieldsValues["departureDate"] = splitDate[0];
     }
 
-    // get date from destinationDate
+    // check if isset `returnDate` | split and get only date
     if (_.has(data.editableFieldsValues, "returnDate")) {
         let splitDate = data.editableFieldsValues["returnDate"].split(' ');
         data.editableFieldsValues["returnDate"] = splitDate[0];
     }
 
-
-    // try to get available flights
+    // try to get available flights | if isset any body data for filter
     if (!_.isEmpty(data.editableFieldsValues)) {
         let filter = {
             "$and": [
@@ -449,7 +433,6 @@ async function checkAvailableFlights(data) {
 
             return Promise.resolve(multiDestinationTripFlightsInfo)
         }
-
     }
     else {
         let filter = {
@@ -503,12 +486,24 @@ async function checkAvailableClasses(data, flightsIds) {
 
     let documentInfo = {};
     documentInfo.collectionName = "classes";
-    documentInfo.filterInfo = {
-        $and: [
-            {flightId: {$in: flightsIds}},
-            {availableSeats: {$gte: needSeatsCount}}
-        ]
-    };
+    // check travel type
+    if (travelTypes.oneWay === data.body.travelType) {
+        documentInfo.filterInfo = {
+            $and: [
+                {flightId: {$in: flightsIds}},
+                {travelType: travelTypes.oneWay},
+                {availableSeats: {$gte: needSeatsCount}}
+            ]
+        };
+    }
+    else {
+        documentInfo.filterInfo = {
+            $and: [
+                {flightId: {$in: flightsIds}},
+                {availableSeats: {$gte: needSeatsCount}}
+            ]
+        };
+    }
     documentInfo.optionInfo = {};
     documentInfo.projectionInfo = {};
 
@@ -524,9 +519,8 @@ async function checkAvailableClasses(data, flightsIds) {
                         classesInfo[classInfo['flightId']] = [];
                     }
 
-
                     // calculate class price
-                    let classFullInfo = await calculatePrices(classInfo, data);
+                    let classFullInfo = await Helper.asyncGetClassPrice(classInfo, data, classInfo.currency);
 
                     classesInfo[classFullInfo['flightId']].push(classFullInfo)
                 }
@@ -559,129 +553,5 @@ function generateResult(data) {
 
     return new Promise((resolve, reject) => {
         resolve(result)
-    });
-}
-
-async function calculatePrices(classInfo, data) {
-    // for one way
-    let priceInfo = {};
-
-    if (travelTypes.oneWay === data.body.travelType) {
-        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.cat);
-        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.cat);
-        priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
-
-        // append prices to class
-        classInfo = await appendPricesToClass(priceInfo, classInfo, data);
-    }
-
-    else if (travelTypes.roundTrip === data.body.travelType) {
-        // check travel duration
-        let flightDuration = await getFlightDurationByFlightId(classInfo.flightId);
-
-        if (flightDuration > (15 * 86400)) {
-            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
-            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
-            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
-
-            // append prices to class
-            classInfo = await appendPricesToClass(priceInfo, classInfo, data);
-        }
-        else if (flightDuration < (3 * 86400)) {
-            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
-            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
-            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
-
-            // append prices to class
-            classInfo = await appendPricesToClass(priceInfo, classInfo, data);
-        }
-        else {
-            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat);
-            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat);
-            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
-
-            // append prices to class
-            classInfo = await appendPricesToClass(priceInfo, classInfo, data);
-        }
-    }
-    else if (travelTypes.multiDestination === data.body.travelType) {
-        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxXAdult) + parseFloat(classInfo.taxYAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
-        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxXChd) + parseFloat(classInfo.taxYChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
-        priceInfo['infantPrice'] = 0;
-
-        // append prices to class
-        classInfo = await appendPricesToClass(priceInfo, classInfo, data);
-    }
-
-    return classInfo;
-}
-
-/**
- *
- * @param priceInfo
- * @param classInfo
- * @param data
- * @returns {Promise<*>}
- */
-async function appendPricesToClass(priceInfo, classInfo, data) {
-    classInfo.prices = [];
-
-    // check travelers types
-    if (typeof data.body.passengerTypeAdults !== 'undefined') {
-        let adultPriceInfo = {
-            eachPrice:  priceInfo.adultPrice,
-            count:      data.body.passengerTypeAdults,
-            totalPrice: data.body.passengerTypeAdults * priceInfo.adultPrice
-        };
-
-        classInfo.prices.push({
-            adultPriceInfo: adultPriceInfo
-        })
-    }
-
-    if (typeof data.body.passengerTypeChild !== 'undefined') {
-        let childPriceInfo = {
-            eachPrice:  priceInfo.childPrice,
-            count:      data.body.passengerTypeChild,
-            totalPrice: data.body.passengerTypeChild * priceInfo.childPrice
-        };
-
-        classInfo.prices.push({
-            childPriceInfo: childPriceInfo
-        })
-    }
-
-    if (typeof data.body.passengerTypeInfant !== 'undefined') {
-        let infantPrice = {
-            eachPrice:  priceInfo.childPrice,
-            count:      data.body.passengerTypeInfant,
-            totalPrice: data.body.passengerTypeInfant * priceInfo.childPrice
-        };
-
-        classInfo.prices.push({
-            infantPrice: infantPrice
-        })
-    }
-
-    return classInfo;
-}
-
-/**
- *
- * @param flightId
- * @returns {Promise<any>}
- */
-async function getFlightDurationByFlightId(flightId) {
-    let documentInfo = {};
-    documentInfo.collectionName = "flights";
-    documentInfo.filterInfo = {_id: ObjectID(flightId)};
-    documentInfo.projectionInfo = {duration: 1};
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.findDocument(documentInfo)
-            .then(docInfo => {
-                resolve(docInfo.duration)
-            })
-            .catch(reject)
     });
 }

@@ -462,6 +462,8 @@ function saveClass(data) {
         flightId:                   data.flightId,
         className:                  data.body.className,
         classType:                  data.body.classType,
+        travelType:                 data.body.travelType,
+        currency:                   data.flightInfo.currency,
         numberOfSeats:              parseFloat(data.body.numberOfSeats),
         availableSeats:             parseFloat(data.body.numberOfSeats),
         fareRules:                  data.body.fareRules,

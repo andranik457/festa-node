@@ -193,21 +193,26 @@ const orderInfo = {
             return {
                 code: 400,
                 status: "error",
-                message: "User with this id not exists!"
+                message: "User with this id dos't exists!"
             }
         }
         else if ("approved" !== agentInfo.status) {
             return {
                 code: 400,
                 status: "error",
-                message: "you can't make this action. Check user status (only for approved users)"
+                message: "You can't make this action. Check user status (only for approved users)"
             }
         }
 
         let ticketFullPrice = {};
-        if (pnrInfo.returnClassInfo.pricesTotalInfo) {
+        if (undefined !== pnrInfo.returnClassInfo) {
             ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice + pnrInfo.returnClassInfo.pricesTotalInfo.totalPrice;
             ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+            ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency
+        }
+        else {
+            ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice;
+            ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
             ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency
         }
 
@@ -245,11 +250,20 @@ const orderInfo = {
             let order = await saveOrder(orderInfo);
 
             if (1 === order.success) {
-                let oderInfo = await Promise.all([
-                    classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
-                    classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count),
-                    classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
-                ]);
+                if (undefined !== pnrInfo.returnClassInfo) {
+                    let oderInfo = await Promise.all([
+                        classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                        classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count),
+                        classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
+                    ]);
+                }
+                else {
+                    let oderInfo = await Promise.all([
+                        classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                        classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
+                    ]);
+                }
+
 
                 return Promise.resolve({
                     code: 200,
