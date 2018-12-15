@@ -905,7 +905,8 @@ async function asyncGetExchangeRateByDate(currentDate) {
 
     let documentInfo = {};
     documentInfo.collectionName = "exchangeRate";
-    documentInfo.filterInfo = {"date" : date};
+    // documentInfo.filterInfo = {"date" : date};
+    documentInfo.filterInfo = {"date" : "festaRate"};
     documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
