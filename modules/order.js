@@ -244,41 +244,58 @@ const orderInfo = {
         // 3. - from onHoldPlayces
         // 4. remove onHold document
         //
+        // 5. remove from pre orders
 
-        let userBalance = await userHelper.asyncUseUserBalance(req.body.agentId, ticketFullPrice.total);
-        if (1 === userBalance.success) {
-            let order = await saveOrder(orderInfo);
+        // for booking can hold in preOrders ???
 
-            if (1 === order.success) {
-                if (undefined !== pnrInfo.returnClassInfo) {
-                    let oderInfo = await Promise.all([
-                        classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
-                        classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count),
-                        classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
-                    ]);
+        if ("Ticketing" === req.body.ticketStatus) {
+            let userBalance = await userHelper.asyncUseUserBalance(req.body.agentId, ticketFullPrice.total);
+            if (1 === userBalance.success) {
+                let order = await saveOrder(orderInfo);
+
+                if (1 === order.success) {
+                    if (undefined !== pnrInfo.returnClassInfo) {
+                        let oderInfo = await Promise.all([
+                            classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                            classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count),
+                            classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
+                        ]);
+                    }
+                    else {
+                        let oderInfo = await Promise.all([
+                            classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                            classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
+                        ]);
+                    }
+
+
+                    return Promise.resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "",
+                        data: orderInfo
+                    });
                 }
                 else {
-                    let oderInfo = await Promise.all([
-                        classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
-                        classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
-                    ]);
+                    return Promise.reject(order);
                 }
-
-
-                return Promise.resolve({
-                    code: 200,
-                    status: "Success",
-                    message: "",
-                    data: orderInfo
-                });
             }
             else {
-                return Promise.reject(order);
+                return Promise.reject(userBalance);
             }
         }
         else {
-            return Promise.reject(userBalance);
+            await saveOrder(orderInfo);
+
+            return Promise.resolve({
+                code: 200,
+                status: "Success",
+                message: "",
+                data: orderInfo
+            });
         }
+
+
 
     },
 

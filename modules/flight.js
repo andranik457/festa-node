@@ -140,71 +140,60 @@ const flight = {
                 type: "text",
                 minLength: 3,
                 maxLength: 128,
-                required: true
             },
             to: {
                 name: "TO (City & Airport)",
                 type: "text",
                 minLength: 3,
                 maxLength: 128,
-                required: true
             },
             startDate: {
                 name: "Start Date (Local time)",
                 type: "date",
                 minLength: 3,
                 maxLength: 64,
-                required: true
-            },
-            startDateTimeZone: {
-                name: "Start Date TimeZone (Local time)",
-                type: "timeZone",
-                minLength: 3,
-                maxLength: 64,
-                required: true
             },
             endDate: {
                 name: "End Date (Local time)",
                 type: "date",
                 minLength: 3,
                 maxLength: 64,
-                required: true
-            },
-            endDateTimeZone: {
-                name: "End Date TimeZone (Local time)",
-                type: "timeZone",
-                minLength: 3,
-                maxLength: 64,
-                required: true
             },
             flightNumber: {
                 name: "Flight Number",
                 type: "text",
                 minLength: 3,
                 maxLength: 64,
-                required: true
+            },
+            duration: {
+                name: "Duration",
+                type: "number",
+                minLength: 3,
+                maxLength: 64,
             },
             airline: {
                 name: "Airline",
                 type: "text",
-                format: "latin",
                 minLength: 3,
                 length: 64,
-                required: true
+            },
+            airlineIataIcao: {
+                name: "Airline IATA ICAO",
+                type: "text",
+                minLength: 3,
+                length: 64,
             },
             numberOfSeats: {
                 name: "Number of seats",
                 type: "number",
                 minLength: 3,
                 length: 64,
-                required: true
             },
             currency: {
                 name: "Currency",
                 type: "text",
                 minLength: 3,
                 length: 64,
-                required: true
             }
         };
 
@@ -374,6 +363,14 @@ function saveFlight(data) {
  * @returns {Promise<any>}
  */
 function updateFlight(data) {
+    if ('{}' === JSON.stringify(data.editableFieldsValues)) {
+        return Promise.reject({
+            code: 400,
+            status: "error",
+            message: "Please check editable fields and try again"
+        })
+    }
+
     let currentTime = Math.floor(Date.now() / 1000);
 
     let updateInfo = data.editableFieldsValues;
@@ -387,9 +384,17 @@ function updateFlight(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(updateRes => {
-                updateRes.ok === 1
-                    ? resolve(data)
-                    : reject(errorTexts.cantUpdateMongoDocument)
+                console.log(updateRes);
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve(data)
+                }
+                else {
+                    reject({
+                        code: 400,
+                        status: "error",
+                        message: "Please check FlightId and try again!"
+                    })
+                }
             })
     });
 }
