@@ -371,6 +371,23 @@ function updateFlight(data) {
         })
     }
 
+    if (undefined !== data.editableFieldsValues.startDate) {
+        let startDateInfo = data.editableFieldsValues.startDate.split(" ");
+
+        data.editableFieldsValues["dateInfo.startDate"] = startDateInfo[0];
+        data.editableFieldsValues["dateInfo.startTime"] = startDateInfo[1];
+
+        delete data.editableFieldsValues.startDate
+    }
+    if (undefined !== data.editableFieldsValues.endDate) {
+        let endDateInfo = data.editableFieldsValues.endDate.split(" ");
+
+        data.editableFieldsValues["dateInfo.startDate"] = endDateInfo[0];
+        data.editableFieldsValues["dateInfo.startTime"] = endDateInfo[1];
+
+        delete data.editableFieldsValues.endDate
+    }
+
     let currentTime = Math.floor(Date.now() / 1000);
 
     let updateInfo = data.editableFieldsValues;
@@ -384,7 +401,6 @@ function updateFlight(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(updateRes => {
-                console.log(updateRes);
                 if (updateRes.lastErrorObject.n > 0) {
                     resolve(data)
                 }
