@@ -909,8 +909,8 @@ async function asyncGetPnrInfo(pnr) {
 
 async function asyncGetExchangeRateByDate(currentDate) {
     // get -1 day from selected date
-    // let previousDayTimestamp = moment(currentDate).format("X") - 86400;
-    // let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
+    let previousDayTimestamp = moment(currentDate).format("X") - 1440;
+    let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
 
     let documentInfo = {};
     documentInfo.collectionName = "exchangeRate";
