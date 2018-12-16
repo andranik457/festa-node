@@ -256,7 +256,6 @@ const user = {
 
             getUserById(data)
                 .then(data => {
-                    console.log(data.userDocInfo);
                     if (null === data.userDocInfo) {
                         reject({
                             code: 400,

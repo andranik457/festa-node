@@ -487,8 +487,6 @@ function validateNumberOfSeats(data) {
     let totalSeats = data.flightInfo.numberOfSeats;
     let requestedSeats = Number(data.body.numberOfSeats);
 
-    // console.log(totalSeats, usedSeats, requestedSeats);body
-
     return new Promise((resolve, reject) => {
         if (totalSeats < (usedSeats + requestedSeats)) {
             let availableSeatsCount = totalSeats - usedSeats;
@@ -542,7 +540,6 @@ function updateClass(data) {
     }
 
     for (let i in data.editableFieldsValues) {
-        console.log(i);
         if ("float" === data.possibleForm[i].type) {
             data.editableFieldsValues[i] = parseFloat(data.editableFieldsValues[i])
         }
@@ -564,7 +561,6 @@ function updateClass(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(updateRes => {
-                // console.log(updateRes);
                 updateRes.ok === 1
                     ? resolve(data)
                     : reject(errorTexts.cantUpdateMongoDocument)

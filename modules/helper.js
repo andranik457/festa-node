@@ -769,7 +769,7 @@ async function asyncGetClassPrice(classInfo, data, currency) {
         // check travel duration
         let flightDuration = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
 
-        if (flightDuration > (15 * 86400)) {
+        if (flightDuration > (15 * 1440)) {
             priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
             priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
             priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
@@ -777,7 +777,7 @@ async function asyncGetClassPrice(classInfo, data, currency) {
             // append prices to class
             classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
         }
-        else if (flightDuration < (3 * 86400)) {
+        else if (flightDuration < (3 * 1440)) {
             priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
             priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
             priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
@@ -909,8 +909,8 @@ async function asyncGetPnrInfo(pnr) {
 
 async function asyncGetExchangeRateByDate(currentDate) {
     // get -1 day from selected date
-    let previousDayTimestamp = moment(currentDate).format("X") - 86400;
-    let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
+    // let previousDayTimestamp = moment(currentDate).format("X") - 86400;
+    // let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
 
     let documentInfo = {};
     documentInfo.collectionName = "exchangeRate";
