@@ -176,6 +176,7 @@ async function validateData(data) {
     const passwordValidateNumeric = /(?=.*[0-9])/;
     const passwordValidateSpecialCharacter = /(?=.*[!@#$%^&*()])/;
     const numberValidate = /^[0-9]+$/;
+    const floatValidate = /^[0-9.]+$/;
     const phoneNumberValidate = /^[+]+[0-9]+$/;
     const dateValidate = /^\d\d\d\d-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]) (00|[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9])$/;
 
@@ -232,6 +233,12 @@ async function validateData(data) {
                 if (("number" === validationFields[field].type) && (checkData[field] !== undefined)) {
                     if (!numberValidate.test(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " can contain only numbers";
+                    }
+                }
+
+                if (("float" === validationFields[field].type) && (checkData[field] !== undefined)) {
+                    if (!floatValidate.test(checkData[field])) {
+                        errorMessage[field] = validationFields[field].name + " can contain only float numbers";
                     }
                 }
 

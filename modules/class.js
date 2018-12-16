@@ -201,125 +201,101 @@ const classInfo = {
     edit: req => {
 
         const possibleFields = {
-            className: {
-                name: "Class Name",
-                type: "text",
-                minLength: 1,
-                maxLength: 6,
-                required: true
-            },
-            classType: {
-                name: "classType",
-                type: "text",
-                format: "latin",
-                minLength: 3,
-                maxLength: 64,
-                required: true
-            },
             numberOfSeats: {
                 name: "Number Of Seats",
                 type: "number",
                 minLength: 1,
                 maxLength: 4,
-                required: true
             },
             fareRules: {
                 name: "Fare Rules",
                 type: "text",
                 minLength: 1,
-                maxLength: 500,
-                required: true
+                maxLength: 2048,
             },
             fareAdult: {
                 name: "Fare ADULT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             fareChd: {
                 name: "Fare CHD",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             fareInf: {
                 name: "Fare INF",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
-            taxXAdult: {
-                name: "Tax X ADULT",
-                type: "number",
+            taxAdult: {
+                name: "Tax ADULT",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
-            taxYAdult: {
-                name: "Tax Y ADULT",
-                type: "number",
+            taxChd: {
+                name: "Tax CHD",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
-            },
-            taxXChd: {
-                name: "Tax X CHD",
-                type: "number",
-                minLength: 1,
-                maxLength: 5,
-                required: true
-            },
-            taxYChd: {
-                name: "Tax Y CHD",
-                type: "number",
-                minLength: 1,
-                maxLength: 5,
-                required: true
             },
             cat: {
                 name: "CAT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             surchargeMultiDestination: {
                 name: "Surcharge MULTIDEST",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             surchargeLongRange: {
                 name: "Surcharge LONG RANGE",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             surchargeShortRange: {
                 name: "Surcharge SHORT RANGE",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             commAdult: {
                 name: "Comm ADULT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
             },
             commChd: {
                 name: "Comm CHD",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
-                required: true
+            },
+            chargeFeeAdult: {
+                name: "Change Fee ADULT",
+                type: "float",
+                minLength: 1,
+                maxLength: 5,
+            },
+            chargeFeeChild: {
+                name: "Change Fee CHD",
+                type: "float",
+                minLength: 1,
+                maxLength: 5,
+            },
+            chargeFeeInfant: {
+                name: "Change Fee INF",
+                type: "float",
+                minLength: 1,
+                maxLength: 5,
             }
         };
 
@@ -557,6 +533,24 @@ function checkClassName(data) {
  * @returns {Promise<any>}
  */
 function updateClass(data) {
+    if ('{}' === JSON.stringify(data.editableFieldsValues)) {
+        return Promise.reject({
+            code: 400,
+            status: "error",
+            message: "Please check editable fields and try again"
+        })
+    }
+
+    for (let i in data.editableFieldsValues) {
+        console.log(i);
+        if ("float" === data.possibleForm[i].type) {
+            data.editableFieldsValues[i] = parseFloat(data.editableFieldsValues[i])
+        }
+        else if ("number" === data.possibleForm[i].type) {
+            data.editableFieldsValues[i] = parseInt(data.editableFieldsValues[i])
+        }
+    }
+
     let currentTime = Math.floor(Date.now() / 1000);
 
     let updateInfo = data.editableFieldsValues;
@@ -570,6 +564,7 @@ function updateClass(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(updateRes => {
+                // console.log(updateRes);
                 updateRes.ok === 1
                     ? resolve(data)
                     : reject(errorTexts.cantUpdateMongoDocument)
