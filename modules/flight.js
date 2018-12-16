@@ -333,6 +333,7 @@ function saveFlight(data) {
         dateInfo:           data.body.dateinfo,
         flightNumber:       data.body.flightNumber,
         airline:            data.body.airline,
+        airlineIataIcao:    data.body.airlineIataIcao,
         numberOfSeats:      Number(data.body.numberOfSeats),
         currency:           data.body.currency,
         status:             "upcoming",
