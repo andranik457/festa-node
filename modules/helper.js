@@ -656,6 +656,8 @@ async function calculateFlightDuration(data) {
                 startTime:              startDateInfo[1],
                 endDate:                endDateInfo[0],
                 endTime:                endDateInfo[1],
+                startDateTime:          data.body.startDate,
+                endDateTime:            data.body.endDate,
                 // startDateTimeZone:      data.body.startDateTimeZone,
                 // endDateTimeZone:        data.body.endDateTimeZone,
                 // startDateUtcOffset:     startDateOffset,

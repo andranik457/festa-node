@@ -376,16 +376,18 @@ function updateFlight(data) {
 
         data.editableFieldsValues["dateInfo.startDate"] = startDateInfo[0];
         data.editableFieldsValues["dateInfo.startTime"] = startDateInfo[1];
+        data.editableFieldsValues["dateInfo.startDateTime"] = data.editableFieldsValues.startDate;
 
-        delete data.editableFieldsValues.startDate
+        delete data.editableFieldsValues.startDate;
     }
     if (undefined !== data.editableFieldsValues.endDate) {
         let endDateInfo = data.editableFieldsValues.endDate.split(" ");
 
-        data.editableFieldsValues["dateInfo.startDate"] = endDateInfo[0];
-        data.editableFieldsValues["dateInfo.startTime"] = endDateInfo[1];
+        data.editableFieldsValues["dateInfo.endDate"] = endDateInfo[0];
+        data.editableFieldsValues["dateInfo.endTime"] = endDateInfo[1];
+        data.editableFieldsValues["dateInfo.endDateTime"] = data.editableFieldsValues.endDate;
 
-        delete data.editableFieldsValues.endDate
+        delete data.editableFieldsValues.endDate;
     }
 
     let currentTime = Math.floor(Date.now() / 1000);
