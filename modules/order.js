@@ -705,7 +705,7 @@ async function twoWayTripData(data) {
     }
     else {
         return {
-            travelType:             travelTypes.oneWay,
+            travelType:             data.body.travelType,
             departureFlightInfo:    departureFlightInfo.data,
             departureClassInfo:     departureClassPriceInfo,
             returnFlightInfo:       returnFlightInfo.data,
