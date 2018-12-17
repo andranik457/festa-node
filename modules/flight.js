@@ -72,7 +72,7 @@ const flight = {
             duration: {
                 name: "Duration",
                 type: "number",
-                minLength: 3,
+                minLength: 1,
                 maxLength: 64,
                 required: true
             },
@@ -168,7 +168,7 @@ const flight = {
             duration: {
                 name: "Duration",
                 type: "number",
-                minLength: 3,
+                minLength: 1,
                 maxLength: 64,
             },
             airline: {
