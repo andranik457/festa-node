@@ -1024,8 +1024,8 @@ async function getOrdersInfo(data) {
     documentInfo.filterInfo = ordersFilter;
     documentInfo.projectionInfo = {};
     documentInfo.optionInfo = {
-        $sort: {
-            cratedAt: -1
+        sort: {
+            createdAt: -1
         }
     };
 
