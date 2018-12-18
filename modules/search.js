@@ -70,7 +70,6 @@ const searchInfo = {
                 departureFrom: {
                     name: "Departure From (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true
@@ -78,7 +77,6 @@ const searchInfo = {
                 destinationTo: {
                     name: "Destination (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true
@@ -120,7 +118,6 @@ const searchInfo = {
                 departureFrom: {
                     name: "Departure From (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true
@@ -128,7 +125,6 @@ const searchInfo = {
                 destinationTo: {
                     name: "Destination (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true
@@ -136,14 +132,12 @@ const searchInfo = {
                 departureFrom1: {
                     name: "Departure From 1 (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                 },
                 destinationTo1: {
                     name: "Destination 1 (City & Airport)",
                     type: "text",
-                    format: "latin",
                     minLength: 3,
                     maxLength: 64,
                     required: true
