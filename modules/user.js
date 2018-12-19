@@ -8,6 +8,7 @@ const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const config        = require("../config/config");
 const Helper        = require("./helper");
+const userHelper    = require("../modules/userHelper");
 const crypto        = require('crypto');
 const jwt           = require("jsonwebtoken");
 const successTexts  = require("../texts/successTexts");
@@ -243,6 +244,11 @@ const user = {
         });
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
     remove: req => {
         let data = {
             userInfo: req.userInfo,
@@ -806,6 +812,99 @@ const user = {
         else {
             return errorTexts.forEnyCase
         }
+    },
+
+
+    changePassword: async (req) => {
+        let possibleFields = {
+            currentPassword: {
+                name: "Current Password",
+                type: "password",
+                minLength: 8,
+                maxLength: 64,
+                required: true
+            },
+            newPassword: {
+                name: "New Password",
+                type: "password",
+                minLength: 8,
+                maxLength: 64,
+                required: true
+            },
+            newPasswordRetry: {
+                name: "New Password Retry",
+                type: "password",
+                minLength: 8,
+                maxLength: 64,
+                required: true
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body,
+            checkedUserId: req.params.userId.toString()
+        };
+
+        // check user role
+        if ("Admin" !== data.userInfo.role) {
+            return errorTexts.userRole;
+        }
+
+        await Helper.validateData(data);
+
+        // get user info
+        let editableUserInfo = await userHelper.asyncGetUserInfoById(data.checkedUserId);
+
+        if (null === editableUserInfo ) {
+            return ({
+                code: 400,
+                status: "error",
+                message: "User not found: Please check userId and try again!"
+            })
+        }
+        else if (crypto.createHash('sha256').update(data.body.currentPassword + editableUserInfo.salt).digest("hex") !== editableUserInfo.password) {
+            return ({
+                code: 400,
+                status: "error",
+                message: "Current password is incorrect: Please check password and try again!"
+            })
+        }
+        else if (data.body.newPassword !== data.body.newPasswordRetry) {
+            return ({
+                code: 400,
+                status: "error",
+                message: "Passwords not matched: Please check passwords and try again!"
+            })
+        }
+
+        let documentInfo = {};
+        documentInfo.collectionName = "users";
+        documentInfo.filterInfo = {"userId" : data.checkedUserId};
+        documentInfo.updateInfo = {'$set': {"password": crypto.createHash('sha256').update(data.body.newPassword + editableUserInfo.salt).digest("hex")}};
+
+        return new Promise((resolve, reject) => {
+            mongoRequests.updateDocument(documentInfo)
+                .then(res => {
+                    resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "User password successfully changed"
+                    })
+                })
+                .catch(err => {
+                    winston.log("error", err);
+
+                    reject({
+                        code: 400,
+                        status: "Error",
+                        message: "Ups: Something went wrong:("
+                    })
+                })
+        });
     }
 
 };
@@ -1338,6 +1437,11 @@ function unsetUserToken(data) {
     })
 }
 
+/**
+ *
+ * @param userId
+ * @returns {Promise<any>}
+ */
 async function getUserInfoByIdMain(userId) {
     let documentInfo = {};
     documentInfo.collectionName = "users";
@@ -1356,6 +1460,11 @@ async function getUserInfoByIdMain(userId) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 function removeUsers(data) {
     let documentInfo = {};
     documentInfo.collectionName = "users";

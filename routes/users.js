@@ -165,4 +165,17 @@ router.post("/balance-history/:userId", (req, res) => {
         })
 });
 
+/**
+ * Change user password
+ */
+router.post("/change-password/:userId", async (req, res, next) => {
+    try {
+        res.send(await userFunc.changePassword(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 module.exports = router;
