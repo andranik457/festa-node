@@ -108,7 +108,7 @@ function decodeToken(tokenInfo) {
  * @param data
  * @returns {Promise<any>}
  */
-function getVerificationToken(data) {
+async function getVerificationToken(data) {
     return new Promise((resolve, reject) => {
         crypto.randomBytes(128, function (err, buffer) {
             if (err) {

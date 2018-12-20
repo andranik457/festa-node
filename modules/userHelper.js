@@ -11,6 +11,7 @@ const ObjectID      = require('mongodb').ObjectID;
 
 const userHelper = {
     asyncGetUserInfoById,
+    asyncGetUserInfoByEmail,
     asyncUseUserBalance
 };
 
@@ -37,7 +38,35 @@ async function asyncGetUserInfoById(userId) {
     });
 }
 
+/**
+ *
+ * @param email
+ * @returns {Promise<any>}
+ */
+async function asyncGetUserInfoByEmail(email) {
+    let documentInfo = {};
+    documentInfo.collectionName = "users";
+    documentInfo.filterInfo = {email: email};
+    documentInfo.projectionInfo = {};
 
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                resolve(docInfo)
+            })
+            .catch(err => {
+                winston('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
+}
+
+/**
+ *
+ * @param userId
+ * @param amount
+ * @returns {Promise<*>}
+ */
 async function asyncUseUserBalance(userId, amount) {
     // get userInfo by userId
     let userInfo = await asyncGetUserInfoById(userId);

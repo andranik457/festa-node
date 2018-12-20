@@ -814,7 +814,11 @@ const user = {
         }
     },
 
-
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     changePassword: async (req) => {
         let possibleFields = {
             currentPassword: {
@@ -849,16 +853,8 @@ const user = {
             checkedUserId: req.params.userId.toString()
         };
 
-        // check user role
-        if ("Admin" !== data.userInfo.role) {
-            return errorTexts.userRole;
-        }
-
-        await Helper.validateData(data);
-
         // get user info
         let editableUserInfo = await userHelper.asyncGetUserInfoById(data.checkedUserId);
-
         if (null === editableUserInfo ) {
             return ({
                 code: 400,
@@ -866,7 +862,15 @@ const user = {
                 message: "User not found: Please check userId and try again!"
             })
         }
-        else if (crypto.createHash('sha256').update(data.body.currentPassword + editableUserInfo.salt).digest("hex") !== editableUserInfo.password) {
+
+        // check user role
+        if ("Admin" !== data.userInfo.role && editableUserInfo.userId !== data.userInfo.userId) {
+            return errorTexts.userRole;
+        }
+
+        await Helper.validateData(data);
+
+        if (crypto.createHash('sha256').update(data.body.currentPassword + editableUserInfo.salt).digest("hex") !== editableUserInfo.password) {
             return ({
                 code: 400,
                 status: "error",
@@ -885,6 +889,196 @@ const user = {
         documentInfo.collectionName = "users";
         documentInfo.filterInfo = {"userId" : data.checkedUserId};
         documentInfo.updateInfo = {'$set': {"password": crypto.createHash('sha256').update(data.body.newPassword + editableUserInfo.salt).digest("hex")}};
+
+        return new Promise((resolve, reject) => {
+            mongoRequests.updateDocument(documentInfo)
+                .then(res => {
+                    resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "User password successfully changed"
+                    })
+                })
+                .catch(err => {
+                    winston.log("error", err);
+
+                    reject({
+                        code: 400,
+                        status: "Error",
+                        message: "Ups: Something went wrong:("
+                    })
+                })
+        });
+    },
+
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
+    forgotPassword: async (req) => {
+        let possibleFields = {
+            email: {
+                name: "Email Address",
+                type: "email",
+                minLength: 3,
+                length: 64,
+                required: true
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body,
+        };
+
+        // validate data
+        await Helper.validateData(data);
+
+        // get users info by email
+        let userInfo = await userHelper.asyncGetUserInfoByEmail(data.body.email);
+        if (null === userInfo) {
+            return ({
+                code: 400,
+                status: "error",
+                message: "User not found: Please check email and try again!"
+            })
+        }
+
+        await Helper.getVerificationToken(data);
+
+        let verificationUrl = config[process.env.NODE_ENV].httpUrl +"/user/forgot-password/verify?token="+ data.verificationToken + "&userId="+ userInfo.userId;
+
+        let documentInfo = {};
+        documentInfo.collectionName = "users";
+        documentInfo.filterInfo = {
+            userId: userInfo.userId
+        };
+        documentInfo.updateInfo = {
+            '$set': {
+                forgotPasswordUrl: data.verificationToken,
+                forgotPasswordDate: Math.floor(Date.now() / 1000)
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            mongoRequests.updateDocument(documentInfo)
+                .then(res => {
+                    resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "Please follow forgot password url",
+                        data: verificationUrl
+                    })
+                })
+                .catch(err => {
+                    winston.log("error", err);
+                    reject(errorTexts.forEnyCase)
+                })
+        });
+    },
+
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
+    forgotPasswordVerify: async (req) => {
+        let data = {
+            passwordForgotToken: req.query.token,
+            userId: req.query.userId.toString()
+        };
+
+        let documentInfo = {};
+        documentInfo.collectionName = "users";
+        documentInfo.filterInfo = {
+            userId: data.userId,
+            forgotPasswordUrl: data.passwordForgotToken
+        };
+        documentInfo.updateInfo = {
+            $set: {
+                forgotPasswordStatus: "Active",
+                forgotPasswordDate: Math.floor(Date.now() / 1000)
+            },
+            $unset: {
+                forgotPasswordUrl: 1
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            mongoRequests.updateDocument(documentInfo)
+                .then(doc => {
+                    console.log(doc);
+                    if (doc.value) {
+                        resolve({
+                            code: 200,
+                            status: "success",
+                            message: "Password forgot verification successfully passed: Now you can insert new password!"
+                        })
+                    }
+                    else {
+                        reject({
+                            code: 400,
+                            status: "error",
+                            message: "Please check verification url and try again"
+                        })
+                    }
+                })
+        });
+    },
+
+
+    forgotPasswordReset: async (req) => {
+        let possibleFields = {
+            password: {
+                name: "Password",
+                type: "password",
+                minLength: 8,
+                maxLength: 64,
+                required: true
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body,
+            checkedUserId: req.params.userId.toString()
+        };
+
+        // get user info
+        let editableUserInfo = await userHelper.asyncGetUserInfoById(data.checkedUserId);
+        if (null === editableUserInfo ) {
+            return ({
+                code: 400,
+                status: "error",
+                message: "User not found: Please check userId and try again!"
+            })
+        }
+
+        if (null === editableUserInfo.forgotPasswordStatus) {
+            return errorTexts.forEnyCase
+        }
+
+        await Helper.validateData(data);
+
+        let documentInfo = {};
+        documentInfo.collectionName = "users";
+        documentInfo.filterInfo = {"userId" : data.checkedUserId};
+        documentInfo.updateInfo = {
+            '$set': {
+                "password": crypto.createHash('sha256').update(data.body.password + editableUserInfo.salt).digest("hex")
+            },
+            '$unset': {
+                forgotPasswordDate: 1,
+                forgotPasswordStatus: 1
+            }
+        };
 
         return new Promise((resolve, reject) => {
             mongoRequests.updateDocument(documentInfo)

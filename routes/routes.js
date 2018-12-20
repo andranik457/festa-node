@@ -61,6 +61,43 @@ router.post("/user/login", (req, res) => {
         })
 });
 
+router.post("/user/forgot-password", async (req, res, next) => {
+    try {
+        res.send(await userFunc.forgotPassword(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+/**
+ * Verify password forgot
+ */
+router.get("/user/forgot-password/verify", async (req, res, next) => {
+    try {
+        res.send(await userFunc.forgotPasswordVerify(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+/**
+ * Reset password
+ */
+router.post("/user/forgot-password/reset/:userId", async (req, res, next) => {
+    try {
+        res.send(await userFunc.forgotPasswordReset(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+
 /**
  * Get exchange rate info
  */
