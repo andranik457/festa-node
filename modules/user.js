@@ -856,7 +856,7 @@ const user = {
         // get user info
         let editableUserInfo = await userHelper.asyncGetUserInfoById(data.checkedUserId);
         if (null === editableUserInfo ) {
-            return ({
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "User not found: Please check userId and try again!"
@@ -871,14 +871,14 @@ const user = {
         await Helper.validateData(data);
 
         if (crypto.createHash('sha256').update(data.body.currentPassword + editableUserInfo.salt).digest("hex") !== editableUserInfo.password) {
-            return ({
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "Current password is incorrect: Please check password and try again!"
             })
         }
         else if (data.body.newPassword !== data.body.newPasswordRetry) {
-            return ({
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "Passwords not matched: Please check passwords and try again!"
@@ -941,7 +941,7 @@ const user = {
         // get users info by email
         let userInfo = await userHelper.asyncGetUserInfoByEmail(data.body.email);
         if (null === userInfo) {
-            return ({
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "User not found: Please check email and try again!"
@@ -1030,7 +1030,11 @@ const user = {
         });
     },
 
-
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     forgotPasswordReset: async (req) => {
         let possibleFields = {
             password: {
@@ -1054,7 +1058,7 @@ const user = {
         // get user info
         let editableUserInfo = await userHelper.asyncGetUserInfoById(data.checkedUserId);
         if (null === editableUserInfo ) {
-            return ({
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "User not found: Please check userId and try again!"
