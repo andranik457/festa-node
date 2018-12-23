@@ -3,11 +3,12 @@
  * Module Dependencies
  */
 
-const router    = require("express").Router();
-const url       = require('url');
-const userFunc  = require("../modules/user");
-const Helper    = require("../modules/helper");
-const winston   = require("winston");
+const router        = require("express").Router();
+const url           = require('url');
+const userFunc      = require("../modules/user");
+const exchangeFunc  = require("../modules/exchange");
+const Helper        = require("../modules/helper");
+const winston       = require("winston");
 
 /**
  * User Register
@@ -108,6 +109,24 @@ router.get("/exchangeRate", async (req, res, next) => {
             status: "OK",
             message: "Daily rate info!",
             result : await Helper.getCurrencyInfo()
+        })
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+
+
+
+router.post("/exchange/rate-by-range", async (req, res, next) => {
+    try {
+        res.send({
+            code: 200,
+            status: "OK",
+            message: "Exchange Rate Info For Selected Range!",
+            result : await exchangeFunc.rateByRange(req)
         })
     }
     catch (err) {

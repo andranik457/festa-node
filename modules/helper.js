@@ -179,6 +179,7 @@ async function validateData(data) {
     const floatValidate = /^[0-9.]+$/;
     const phoneNumberValidate = /^[+]+[0-9]+$/;
     const dateValidate = /^\d\d\d\d-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9])$/;
+    const onlyDateValidate = /^\d\d\d\d-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01])$/;
 
     let errorMessage = {};
 
@@ -246,6 +247,13 @@ async function validateData(data) {
                 if ("date" === validationFields[field].type) {
                     if (!dateValidate.test(checkData[field])) {
                         errorMessage[field] = validationFields[field].name + " not corresponding date time format";
+                    }
+                }
+
+                // only date check
+                if ("onlyDate" === validationFields[field].type) {
+                    if (!onlyDateValidate.test(checkData[field])) {
+                        errorMessage[field] = validationFields[field].name + " not corresponding date format";
                     }
                 }
 
@@ -720,7 +728,7 @@ async function getEditableFieldsValues(data) {
         editableFieldsValues[key] = requestFields[key];
     });
 
-    data.editableFieldsValues = editableFieldsValues
+    data.editableFieldsValues = editableFieldsValues;
     return data;
 }
 
@@ -958,8 +966,6 @@ async function asyncPrivatePriceInfoWithRate(price, currency) {
         infantPriceFlightCurrency:  price.infantPrice,
     }
 }
-
-
 
 
 module.exports = helper;
