@@ -49,6 +49,18 @@ const text = {
         message: "Ups: Some error occurred in process to creating new id for user!"
     },
 
+    pnr: {
+        code: 400,
+        status: "error",
+        message: "Ups: Some error occurred in process to creating new id for pnr!"
+    },
+
+    ticketNumber: {
+        code: 400,
+        status: "error",
+        message: "Ups: Some error occurred in process to creating new id for ticket number!"
+    },
+
     verificationToken: {
         code: 400,
         status: "error",

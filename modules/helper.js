@@ -26,6 +26,7 @@ const helper = {
     getVerificationToken,
     getNewUserId,
     getNewPnrId,
+    getNewTicketNumber,
     validateData,
     getUserUpdateableFieldsByRole,
     generateValidationFields,
@@ -155,8 +156,24 @@ async function getNewPnrId() {
         mongoRequests.updateDocument(documentInfo)
             .then(docInfo => {
                 docInfo > 0
-                    ? reject(errorTexts.userNewId)
+                    ? reject(errorTexts.pnr)
                     : resolve('F' + docInfo.value.sequenceId)
+            })
+    });
+}
+
+async function getNewTicketNumber() {
+    let documentInfo = {};
+    documentInfo.collectionName = "autoincrement";
+    documentInfo.filterInfo = {"type" : "ticketNumber"};
+    documentInfo.updateInfo = {$inc: {sequenceId: 1}};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(docInfo => {
+                docInfo > 0
+                    ? reject(errorTexts.ticketNumber)
+                    : resolve('FT' + docInfo.value.sequenceId)
             })
     });
 }
@@ -188,7 +205,7 @@ async function validateData(data) {
         for (let field in validationFields) {
 
             // trim data
-            if (typeof checkData[field] !== "undefined") {
+            if ("undefined" !== typeof checkData[field] && "string" === typeof checkData[field]) {
                 checkData[field] = checkData[field].trim();
             }
 

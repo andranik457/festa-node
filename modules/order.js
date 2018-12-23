@@ -14,6 +14,7 @@ const flightFunc    = require("../modules/flight");
 const classFunc     = require("../modules/class");
 const userHelper    = require("../modules/userHelper");
 const classHelper   = require("../modules/classHelper");
+const orderHelper   = require("../modules/orderHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const travelTypes = {
@@ -105,18 +106,11 @@ const orderInfo = {
                 maxLength: 128,
                 required: true
             },
-            contactPersonName: {
-                name: "Contact Person name",
+            contactPersonFullName: {
+                name: "Contact Person Full name",
                 type: "text",
                 minLength: 3,
-                maxLength: 64,
-                required: true
-            },
-            contactPersonSurname: {
-                name: "Contact Person surname",
-                type: "text",
-                minLength: 3,
-                maxLength: 64,
+                maxLength: 128,
                 required: true
             },
             contactPersonEmail: {
@@ -156,6 +150,8 @@ const orderInfo = {
 
         let passengerInfo = [];
         for (let i in passengersInfo) {
+            let ticketNumber = await Helper.getNewTicketNumber();
+
             let passengerValidateInfo = await createValidateFormDependPassengerType(passengersInfo[i]);
 
             if (_.has(passengerValidateInfo, "code")) {
@@ -175,6 +171,7 @@ const orderInfo = {
                 // validate passenger data
                 await Helper.validateData(data);
 
+                passengersInfo[i].ticketNumber = ticketNumber;
                 passengerInfo.push(passengersInfo[i]);
             }
         }
@@ -227,8 +224,7 @@ const orderInfo = {
             ticketPrice:            ticketFullPrice,
             comment:                req.body.comment,
             contactPersonInfo:      {
-                name:      req.body.contactPersonName,
-                surname:   req.body.contactPersonSurname,
+                fullName:  req.body.contactPersonFullName,
                 email:     req.body.contactPersonEmail,
                 telephone: req.body.contactPersonTelephone,
             },
@@ -248,55 +244,43 @@ const orderInfo = {
 
         // for booking can hold in preOrders ???
 
+        let canContinue = true;
         if ("Ticketing" === req.body.ticketStatus) {
             let userBalance = await userHelper.asyncUseUserBalance(req.body.agentId, ticketFullPrice.total);
-            if (1 === userBalance.success) {
-                let order = await saveOrder(orderInfo);
 
-                if (1 === order.success) {
-                    if (undefined !== pnrInfo.returnClassInfo) {
-                        let oderInfo = await Promise.all([
-                            classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
-                            classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count),
-                            classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
-                        ]);
-                    }
-                    else {
-                        let oderInfo = await Promise.all([
-                            classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
-                            classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr)
-                        ]);
-                    }
+            if (1 !== userBalance.success) {
+                canContinue = false;
+            }
+        }
 
+        if (canContinue) {
+            let order = await saveOrder(orderInfo);
 
-                    return Promise.resolve({
-                        code: 200,
-                        status: "Success",
-                        message: "",
-                        data: orderInfo
-                    });
+            if (1 === order.success) {
+                if (undefined !== pnrInfo.returnClassInfo) {
+                    await classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count)
                 }
-                else {
-                    return Promise.reject(order);
-                }
+
+                await Promise.all([
+                    classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                    classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr),
+                    orderHelper.removePreOrdersByPnr(pnrInfo.pnr)
+                ]);
+
+                return Promise.resolve({
+                    code: 200,
+                    status: "Success",
+                    message: "",
+                    data: orderInfo
+                });
             }
             else {
-                return Promise.reject(userBalance);
+                return Promise.reject(order);
             }
         }
         else {
-            await saveOrder(orderInfo);
-
-            return Promise.resolve({
-                code: 200,
-                status: "Success",
-                message: "",
-                data: orderInfo
-            });
+            return Promise.reject(userBalance);
         }
-
-
-
     },
 
     async getOrders (req) {
@@ -571,6 +555,13 @@ async function createValidateFormDependPassengerType(body) {
                 maxLength: 18,
                 required: true
             },
+            dob: {
+                name: "Date of birth",
+                type: "number",
+                minLength: 4,
+                maxLength: 4,
+                required: true
+            },
         };
     }
     else if ((body.passengerType === "Child") || (body.passengerType === "Infant")) {
@@ -761,10 +752,10 @@ async function createOneWayPreOrder(data) {
             });
         }
 
-        // add data to on hold
-        await addPlacesToOnHold(data.tripInfo.departureClassInfo, data.passengersCount);
-
         let pnr = await Helper.getNewPnrId();
+
+        // add data to on hold
+        await addPlacesToOnHold(pnr, data.tripInfo.departureClassInfo, data.passengersCount);
 
         let currentTime = Math.floor(Date.now() / 1000);
 
@@ -829,14 +820,14 @@ async function createTwoWayPreOrder(data) {
             });
         }
 
-        // add data to on hold
-        await Promise.all([
-            addPlacesToOnHold(data.tripInfo.departureClassInfo, data.passengersCount),
-            addPlacesToOnHold(data.tripInfo.returnClassInfo, data.passengersCount)
-        ]);
-
         // get new PNR
         let pnr = await Helper.getNewPnrId();
+
+        // add data to on hold
+        await Promise.all([
+            addPlacesToOnHold(pnr, data.tripInfo.departureClassInfo, data.passengersCount),
+            addPlacesToOnHold(pnr, data.tripInfo.returnClassInfo, data.passengersCount)
+        ]);
 
         let currentTime = Math.floor(Date.now() / 1000);
         let preOrderInfo = {
@@ -917,12 +908,16 @@ async function getOnHoldPlaceCountForClass(classId) {
  * @param placesCount
  * @returns {Promise<any>}
  */
-async function addPlacesToOnHold(classInfo, placesCount) {
+async function addPlacesToOnHold(pnr, classInfo, placesCount) {
+    let currentDate = Math.floor(Date.now() / 1000);
+
     let documentInfo = {};
     documentInfo.collectionName = "onHold";
     documentInfo.documentInfo = {
+        pnr: pnr,
         classId: classInfo._id.toString(),
-        count: placesCount
+        count: placesCount,
+        createdAt: currentDate
     };
 
     return new Promise((resolve, reject) => {

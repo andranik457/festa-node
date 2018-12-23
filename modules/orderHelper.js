@@ -13,7 +13,8 @@ const orderHelper = {
     getOrdersByFlightId,
     getPreOrdersByFlightId,
     getOrdersByClassId,
-    getPreOrdersByClassId
+    getPreOrdersByClassId,
+    removePreOrdersByPnr
 };
 
 async function getOrdersByFlightId(flightId) {
@@ -93,6 +94,25 @@ async function getPreOrdersByClassId(classId) {
                 resolve(documentsCount)
             })
             .catch(reject)
+    });
+}
+
+async function removePreOrdersByPnr(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "preOrders";
+    documentInfo.filterInfo = {pnr: pnr};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.removeDocument(documentInfo)
+            .then(docInfo => {
+                resolve({
+                    success: 1
+                })
+            })
+            .catch(err => {
+                winston.log('error', err);
+                reject(errorTexts.forEnyCase)
+            })
     });
 }
 
