@@ -68,7 +68,7 @@ const orderInfo = {
             return await createTwoWayPreOrder(data);
         }
         else {
-            return errorTexts.incorrectTravelType
+            return Promise.reject(errorTexts.incorrectTravelType)
         }
 
     },
@@ -190,18 +190,18 @@ const orderInfo = {
         // check Agent Info
         let agentInfo = await userHelper.asyncGetUserInfoById(req.body.agentId);
         if (null === agentInfo) {
-            return {
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "User with this id dos't exists!"
-            }
+            })
         }
         else if ("approved" !== agentInfo.status) {
-            return {
+            return Promise.reject({
                 code: 400,
                 status: "error",
                 message: "You can't make this action. Check user status (only for approved users)"
-            }
+            })
         }
 
         let ticketFullPrice = {};

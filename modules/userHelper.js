@@ -74,11 +74,11 @@ async function asyncUseUserBalance(userId, amount) {
     let getFromBalance = 0;
     let getFromCredit = 0;
     if ((userInfo.balance.currentBalance + userInfo.balance.maxCredit - userInfo.balance.currentCredit) < amount) {
-        return {
+        return Promise.reject({
             code: 400,
             status: "error",
             message: "You don't have enough money"
-        }
+        })
     }
     else if (amount > userInfo.balance.currentBalance) {
         getFromBalance = userInfo.balance.currentBalance;

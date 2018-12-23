@@ -115,7 +115,8 @@ const flight = {
 
         return new Promise((resolve, reject) => {
             if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
+                reject(errorTexts.userRole);
+                return
             }
 
             Helper.validateData(data)
@@ -206,11 +207,13 @@ const flight = {
 
         return new Promise((resolve, reject) => {
             if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
+                reject(errorTexts.userRole);
+                return
             }
 
             if (!ObjectID.isValid(data.flightId)) {
-                reject(errorTexts.mongId)
+                reject(errorTexts.mongId);
+                return
             }
 
             return new Promise((resolve, reject) => {
