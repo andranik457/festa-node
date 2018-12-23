@@ -11,6 +11,8 @@ const ObjectID      = require('mongodb').ObjectID;
 
 const classHelper = {
     asyncUsePlaces,
+    getClassesByFlightId,
+    getClassByClassId,
     asyncRemoveOnHoldPlaces
 };
 
@@ -66,6 +68,40 @@ async function asyncRemoveOnHoldPlaces(pnr) {
                 winston.log('error', err);
                 reject(errorTexts.forEnyCase)
             })
+    });
+}
+
+async function getClassesByFlightId(flightId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        flightId: flightId
+    };
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documentsInfo => {
+                resolve(documentsInfo)
+            })
+            .catch(reject)
+    });
+}
+
+async function getClassByClassId(classId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        _id: ObjectID(classId)
+    };
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(documentsInfo => {
+                resolve(documentsInfo)
+            })
+            .catch(reject)
     });
 }
 

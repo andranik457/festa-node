@@ -28,18 +28,14 @@ router.post("/create", (req, res) => {
 /**
  * Edit Flight
  */
-router.post("/edit/:flightId", (req, res) => {
-    flightFunc.edit(req)
-        .then(result => {
-            res.status(result.code);
-            res.send(result)
-        })
-        .catch(err => {
-            winston.log("error", err);
-
-            res.status(err.code);
-            return res.json(err);
-        });
+router.post("/edit/:flightId", async (req, res, next) => {
+    try {
+        res.send(await flightFunc.edit(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
 });
 
 /**

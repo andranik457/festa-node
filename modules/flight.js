@@ -7,6 +7,9 @@ const _             = require("underscore");
 const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const Helper        = require("../modules/helper");
+const flightHelper  = require("../modules/flightHelper");
+const classHelper   = require("../modules/classHelper");
+const orderHelper   = require("../modules/orderHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const ObjectID      = require('mongodb').ObjectID;
@@ -93,8 +96,8 @@ const flight = {
             numberOfSeats: {
                 name: "Number of seats",
                 type: "number",
-                minLength: 3,
-                length: 64,
+                minLength: 1,
+                length: 5,
                 required: true
             },
             currency: {
@@ -134,20 +137,20 @@ const flight = {
      * @param req
      * @returns {Promise<any>}
      */
-    edit: req => {
+    edit: async (req) => {
         const possibleForm = {
-            from: {
-                name: "FROM (City & Airport)",
-                type: "text",
-                minLength: 3,
-                maxLength: 128,
-            },
-            to: {
-                name: "TO (City & Airport)",
-                type: "text",
-                minLength: 3,
-                maxLength: 128,
-            },
+            // from: {
+            //     name: "FROM (City & Airport)",
+            //     type: "text",
+            //     minLength: 3,
+            //     maxLength: 128,
+            // },
+            // to: {
+            //     name: "TO (City & Airport)",
+            //     type: "text",
+            //     minLength: 3,
+            //     maxLength: 128,
+            // },
             startDate: {
                 name: "Start Date (Local time)",
                 type: "date",
@@ -187,15 +190,15 @@ const flight = {
             numberOfSeats: {
                 name: "Number of seats",
                 type: "number",
-                minLength: 3,
-                length: 64,
+                minLength: 1,
+                length: 5,
             },
-            currency: {
-                name: "Currency",
-                type: "text",
-                minLength: 3,
-                length: 64,
-            }
+            // currency: {
+            //     name: "Currency",
+            //     type: "text",
+            //     minLength: 3,
+            //     length: 64,
+            // }
         };
 
         let data = {
@@ -205,30 +208,32 @@ const flight = {
             possibleForm: possibleForm
         };
 
-        return new Promise((resolve, reject) => {
-            if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole);
-                return
-            }
+        // check action maker role
+        if ("Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
 
-            if (!ObjectID.isValid(data.flightId)) {
-                reject(errorTexts.mongId);
-                return
-            }
+        // check is correct mongoId
+        if (!ObjectID.isValid(data.flightId)) {
+            return Promise.reject(errorTexts.mongId);
+        }
 
-            return new Promise((resolve, reject) => {
-                Helper.getEditableFields(data)
-                    .then(Helper.getEditableFieldsValues)
-                    .then(Helper.validateData)
-                    .then(resolve)
-                    .catch(reject)
-            })
-                .then(updateFlight)
-                .then(data => {
-                    resolve(successTexts.flightUpdated)
-                })
-                .catch(reject)
-        })
+        // get editable fields
+        await Helper.getEditableFields(data);
+
+        // get editable fields values
+        await Helper.getEditableFieldsValues(data);
+
+        // validate data
+        await Helper.validateData(data);
+
+        // get flight info by id
+        data.flightInfo = await flightHelper.getFlightByFlightId(data.flightId);
+
+        // update Flight
+        await updateFlight(data);
+
+        return Promise.resolve(successTexts.flightUpdated)
     },
 
     /**
@@ -366,13 +371,45 @@ function saveFlight(data) {
  * @param data
  * @returns {Promise<any>}
  */
-function updateFlight(data) {
+async function updateFlight(data) {
     if ('{}' === JSON.stringify(data.editableFieldsValues)) {
         return Promise.reject({
             code: 400,
             status: "error",
             message: "Please check editable fields and try again"
         })
+    }
+    else {
+        // check orders with flightId | get orders with flightId
+        let ordersCount = await orderHelper.getOrdersByFlightId(data.flightId);
+        let preOrdersCount = await orderHelper.getPreOrdersByFlightId(data.flightId);
+
+        if (ordersCount > 0 || preOrdersCount > 0) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "You have some complete or pending orders with this flight: please check them and try again"
+            })
+        }
+    }
+
+    // check for case: edit number of seats
+    if (undefined !== data.editableFieldsValues.numberOfSeats) {
+        // check classes number of seats | if new value les than total number of seats in classes return error
+        let classesInfo = await classHelper.getClassesByFlightId(data.flightId);
+        let placesInClasses = 0;
+        for (let i in classesInfo) {
+            placesInClasses += classesInfo[i].numberOfSeats;
+        }
+
+        //
+        if (data.editableFieldsValues.numberOfSeats < placesInClasses) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Incorrect Number Of Seats: Number of seats can't be les than total number of seats in classes"
+            })
+        }
     }
 
     if (undefined !== data.editableFieldsValues.startDate) {
@@ -411,11 +448,7 @@ function updateFlight(data) {
                     resolve(data)
                 }
                 else {
-                    reject({
-                        code: 400,
-                        status: "error",
-                        message: "Please check FlightId and try again!"
-                    })
+                    reject(errorTexts.incorrectFlightId)
                 }
             })
     });

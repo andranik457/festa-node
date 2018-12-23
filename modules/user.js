@@ -503,7 +503,7 @@ const user = {
      * @param req
      * @returns {Promise<any>}
      */
-    increaseBalance: req => {
+    increaseBalance: async (req) => {
         const possibleForm = {
             currency: {
                 name: "Currency",
@@ -529,61 +529,64 @@ const user = {
         let data = {
             body: req.body,
             userInfo: req.userInfo,
-            userId: req.params.userId.toString(),
+            editableUserId: req.params.userId.toString(),
             editableFields: possibleForm,
             editableFieldsValues: req.body
         };
 
-        return new Promise((resolve, reject) => {
-            if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
+        // check action maker role
+        if ("Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // get user info
+        let editableUserInfo = await userHelper.asyncGetUserInfoById(data.editableUserId);
+        if (null === editableUserInfo ) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "User not found: Please check userId and try again!"
+            })
+        }
+        data.editableUserInfo = editableUserInfo;
+
+        // validate body data
+        await Helper.validateData(data);
+
+        let updateInfo = await userHelper.getBalanceUpdateInfo(data);
+
+        let userDocumentInfo = {
+            collectionName: "users",
+            filterInfo: {
+                "userId" : data.editableUserId
+            },
+            updateInfo: updateInfo.updateInfo
+        };
+
+        let historyDocumentInfo = {
+            collectionName: "balanceHistory",
+            documentInfo: {
+                type: "Increase Balance",
+                userId: data.editableUserId,
+                currency: updateInfo.currency,
+                rate: updateInfo.rate,
+                amount: data.body.amount,
+                description: data.body.description,
+                createdAt: Math.floor(Date.now() / 1000)
             }
+        };
 
-            Helper.validateData(data)
-                .then(getUserById)
-                .then(Helper.balanceUpdateInfo)
-                .then(data => {
-                    let documentInfo = {
-                        collectionName: "users",
-                        filterInfo: {
-                            "userId" : data.userId
-                        },
-                        updateInfo: data.balanceInfo.updateInfo
-                    };
+        let increaseBalanceResult = await Promise.all([
+            mongoRequests.updateDocument(userDocumentInfo),
+            mongoRequests.insertDocument(historyDocumentInfo)
+        ]);
 
-                    let historyInfo = {
-                        collectionName: "balanceHistory",
-                        documentInfo: {
-                            type: "Increase Balance",
-                            userId: data.userId,
-                            currency: data.balanceInfo.currency,
-                            rate: data.balanceInfo.rate,
-                            amount: data.body.amount,
-                            description: data.body.description,
-                            createdAt: Math.floor(Date.now() / 1000)
-                        }
-                    };
-
-                    return new Promise((resolve, reject) => {
-                        Promise.all([
-                            mongoRequests.updateDocument(documentInfo),
-                            mongoRequests.insertDocument(historyInfo)
-                        ])
-                            .then(doc => {
-                                resolve(successTexts.userUpdated)
-                            })
-                            .catch(err => {
-                                winston.log('error', err);
-
-                                reject(errorTexts.forEnyCase)
-                            })
-                        })
-                })
-                .then(data => {
-                    resolve(successTexts.userUpdated)
-                })
-                .catch(reject)
-        })
+        if (1 === increaseBalanceResult[0].lastErrorObject.n) {
+            return Promise.resolve(successTexts.userUpdated)
+        }
+        else {
+            return Promise.reject(errorTexts.forEnyCase)
+        }
     },
 
     /**
@@ -591,7 +594,7 @@ const user = {
      * @param req
      * @returns {Promise<any>}
      */
-    useBalance: req => {
+    useBalance: async (req) => {
         const possibleForm = {
             currency: {
                 name: "Currency",
@@ -617,61 +620,66 @@ const user = {
         let data = {
             body: req.body,
             userInfo: req.userInfo,
-            userId: req.params.userId.toString(),
+            editableUserId: req.params.userId.toString(),
             editableFields: possibleForm,
             editableFieldsValues: req.body
         };
 
-        return new Promise((resolve, reject) => {
-            if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
+        // check action maker role
+        if ("Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // get user info
+        let editableUserInfo = await userHelper.asyncGetUserInfoById(data.editableUserId);
+
+        if (null === editableUserInfo ) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "User not found: Please check userId and try again!"
+            })
+        }
+        data.editableUserInfo = editableUserInfo;
+
+        // validate body data
+        await Helper.validateData(data);
+
+        let updateInfo = await userHelper.useBalanceByAdmin(data);
+
+        let userDocumentInfo = {
+            collectionName: "users",
+            filterInfo: {
+                "userId" : data.editableUserId
+            },
+            updateInfo: updateInfo.updateInfo
+        };
+
+        let historyDocumentInfo = {
+            collectionName: "balanceHistory",
+            documentInfo: {
+                type: "Use Balance",
+                userId: data.editableUserId,
+                currency: updateInfo.currency,
+                rate: updateInfo.rate,
+                amount: data.body.amount,
+                description: data.body.description,
+                createdAt: Math.floor(Date.now() / 1000)
             }
+        };
 
-            Helper.validateData(data)
-                .then(getUserById)
-                .then(Helper.useBalanceByAdmin)
-                .then(data => {
-                    let documentInfo = {
-                        collectionName: "users",
-                        filterInfo: {
-                            "userId" : data.userId
-                        },
-                        updateInfo: data.balanceInfo.updateInfo
-                    };
+        let increaseBalanceResult = await Promise.all([
+            mongoRequests.updateDocument(userDocumentInfo),
+            mongoRequests.insertDocument(historyDocumentInfo)
+        ]);
 
-                    let historyInfo = {
-                        collectionName: "balanceHistory",
-                        documentInfo: {
-                            type: "Use Balance",
-                            userId: data.userId,
-                            currency: data.balanceInfo.currency,
-                            rate: data.balanceInfo.rate,
-                            amount: data.body.amount,
-                            description: data.body.description,
-                            createdAt: Math.floor(Date.now() / 1000)
-                        }
-                    };
+        if (1 === increaseBalanceResult[0].lastErrorObject.n) {
+            return Promise.resolve(successTexts.userUpdated)
+        }
+        else {
+            return Promise.reject(errorTexts.forEnyCase)
+        }
 
-                    return new Promise((resolve, reject) => {
-                        Promise.all([
-                            mongoRequests.updateDocument(documentInfo),
-                            mongoRequests.insertDocument(historyInfo)
-                        ])
-                            .then(doc => {
-                                resolve(successTexts.userUpdated)
-                            })
-                            .catch(err => {
-                                winston.log('error', err);
-
-                                reject(errorTexts.forEnyCase)
-                            })
-                    })
-                })
-                .then(data => {
-                    resolve(successTexts.userUpdated)
-                })
-                .catch(reject)
-        })
     },
 
     /**
@@ -1011,7 +1019,6 @@ const user = {
         return new Promise((resolve, reject) => {
             mongoRequests.updateDocument(documentInfo)
                 .then(doc => {
-                    console.log(doc);
                     if (doc.value) {
                         resolve({
                             code: 200,

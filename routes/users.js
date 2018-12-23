@@ -107,33 +107,27 @@ router.post("/update/:userId", (req, res) => {
 /**
  * Increase balance by admin
  */
-router.post("/increase-balance/:userId", (req, res) => {
-    userFunc.increaseBalance(req)
-        .then(result => {
-            res.send(result)
-        })
-        .catch(err => {
-            winston.log("error", err);
-            //
-            res.status(err.code);
-            return res.json(err);
-        })
+router.post("/increase-balance/:userId", async (req, res, next) => {
+    try {
+        res.send(await userFunc.increaseBalance(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
 });
 
 /**
  * Use user balance by admin
  */
-router.post("/use-balance/:userId", (req, res) => {
-    userFunc.useBalance(req)
-        .then(result => {
-            res.send(result)
-        })
-        .catch(err => {
-            winston.log("error", err);
-            //
-            res.status(err.code);
-            return res.json(err);
-        })
+router.post("/use-balance/:userId", async (req, res, next) => {
+    try {
+        res.send(await userFunc.useBalance(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
 });
 
 /**

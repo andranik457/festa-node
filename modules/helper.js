@@ -7,7 +7,6 @@ const _                 = require("underscore");
 const winston           = require("winston");
 const moment            = require("moment");
 const momentTimeZone    = require('moment-timezone');
-const userHelper        = require("../modules/userHelper");
 const mongoRequests     = require("../dbQueries/mongoRequests");
 const config            = require("../config/config");
 const crypto            = require('crypto');
@@ -31,8 +30,6 @@ const helper = {
     getUserUpdateableFieldsByRole,
     generateValidationFields,
     generateUpdateInfo,
-    balanceUpdateInfo,
-    useBalanceByAdmin,
     calculateFlightDuration,
     getEditableFields,
     getEditableFieldsValues,
@@ -144,6 +141,10 @@ function getNewUserId(data) {
     });
 }
 
+/**
+ *
+ * @returns {Promise<any>}
+ */
 async function getNewPnrId() {
     let documentInfo = {};
     documentInfo.collectionName = "autoincrement";
@@ -436,85 +437,8 @@ async function generateUpdateInfo(data) {
     return updateCriteria;
 }
 
-/**
- *
- * @param data
- * @returns {Promise<*>}
- */
-async function balanceUpdateInfo(data) {
-    let payForCredit = 0;
-    let payForBalance = 0;
 
-    let balanceInfo = data.userDocInfo.balance;
-    let reqInfo = data.body;
 
-    let amountInfo = await checkAmount(reqInfo.currency, reqInfo.amount);
-
-    if (balanceInfo.currentCredit > 0) {
-        if (amountInfo.amount > balanceInfo.currentCredit) {
-            payForCredit = balanceInfo.currentCredit;
-            payForBalance = amountInfo.amount - payForCredit;
-        }
-        else {
-            payForCredit = amountInfo.amount;
-        }
-    }
-    else {
-        payForBalance = amountInfo.amount;
-    }
-
-    let updateBalanceInfo = {
-        currency: amountInfo.currency,
-        rate: amountInfo.rate,
-        updateInfo: {$inc: {
-            "balance.currentBalance": payForBalance,
-            "balance.currentCredit": -payForCredit
-        }}
-    };
-
-    data.balanceInfo = updateBalanceInfo;
-
-    return data;
-}
-
-/**
- *
- * @param currency
- * @param amount
- * @returns {Promise<*>}
- */
-async function checkAmount(currency, amount) {
-    const currencyInfo = await getCurrencyInfo();
-
-    let amountInfo = {};
-
-    switch (currency) {
-        case "AMD":
-            amountInfo = {
-                amount: parseFloat(currencyInfo.AMD) * amount,
-                currency: "AMD",
-                rate: parseFloat(currencyInfo.AMD)
-            };
-            break;
-        case "USD":
-            amountInfo = {
-                amount: parseFloat(currencyInfo.USD) * amount,
-                currency: "USD",
-                rate: parseFloat(currencyInfo.USD)
-            };
-            break;
-        case "EUR":
-            amountInfo = {
-                amount: parseFloat(currencyInfo.EUR) * amount,
-                currency: "EUR",
-                rate: parseFloat(currencyInfo.EUR)
-            };
-            break;
-        default: return  null
-    }
-
-    return amountInfo;
-}
 
 /**
  *
@@ -583,58 +507,8 @@ async function getDailyRate() {
     });
 }
 
-/**
- *
- * @param data
- * @returns {Promise<any>}
- */
-async function useBalanceByAdmin(data) {
-    let getFromCredit = 0;
-    let getFromBalance = 0;
-
-    let currentBalance = data.userDocInfo.balance.currentBalance;
-    let currentCredit = data.userDocInfo.balance.currentCredit;
-    let maxCredit = data.userDocInfo.balance.maxCredit;
-
-    let reqInfo = data.body;
-
-    // get amount by default currency
-    let amountInfo = await checkAmount(reqInfo.currency, reqInfo.amount);
-
-    return new Promise((resolve, reject) => {
-        if (amountInfo.amount > currentBalance) {
-            getFromBalance = currentBalance;
-
-            if ((amountInfo.amount - getFromBalance) > (maxCredit - currentCredit)) {
-                reject({
-                    code: 400,
-                    status: "error",
-                    message: "Your request cannot be completed: user balance less than you request!"
-                })
-            }
-            else {
-                getFromCredit = amountInfo.amount - getFromBalance;
-            }
-        }
-        else {
-            getFromBalance = amountInfo.amount;
-        }
 
 
-        data.balanceInfo = {
-            currency: amountInfo.currency,
-            rate: amountInfo.rate,
-            updateInfo: {
-                $inc: {
-                    "balance.currentBalance": -getFromBalance,
-                    "balance.currentCredit": getFromCredit
-                }
-            }
-        };
-
-        resolve(data);
-    });
-}
 
 /**
  *
@@ -915,6 +789,39 @@ async function asyncGetPnrInfo(pnr) {
     });
 }
 
+async function checkAmount(currency, amount) {
+    const currencyInfo = await asyncGetExchangeRateByDate();
+
+    let amountInfo = {};
+
+    switch (currency) {
+        case "AMD":
+            amountInfo = {
+                amount: parseFloat(currencyInfo.data.AMD) * amount,
+                currency: "AMD",
+                rate: parseFloat(currencyInfo.data.AMD)
+            };
+            break;
+        case "USD":
+            amountInfo = {
+                amount: parseFloat(currencyInfo.data.USD) * amount,
+                currency: "USD",
+                rate: parseFloat(currencyInfo.data.USD)
+            };
+            break;
+        case "EUR":
+            amountInfo = {
+                amount: parseFloat(currencyInfo.data.EUR) * amount,
+                currency: "EUR",
+                rate: parseFloat(currencyInfo.data.EUR)
+            };
+            break;
+        default: return Promise.reject(errorTexts.amountInfo)
+    }
+
+    return amountInfo;
+}
+
 async function asyncGetExchangeRateByDate(currentDate) {
     // get -1 day from selected date
     let previousDayTimestamp = moment(currentDate).format("X") - 1440;
@@ -922,8 +829,7 @@ async function asyncGetExchangeRateByDate(currentDate) {
 
     let documentInfo = {};
     documentInfo.collectionName = "exchangeRate";
-    // documentInfo.filterInfo = {"date" : date};
-    documentInfo.filterInfo = {"date" : "2018-12-15"};
+    documentInfo.filterInfo = {"date" : date};
     documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {

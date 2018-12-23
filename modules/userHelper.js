@@ -5,6 +5,7 @@
 const _             = require("underscore");
 const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
+const Helper        = require("../modules/helper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const ObjectID      = require('mongodb').ObjectID;
@@ -12,7 +13,9 @@ const ObjectID      = require('mongodb').ObjectID;
 const userHelper = {
     asyncGetUserInfoById,
     asyncGetUserInfoByEmail,
-    asyncUseUserBalance
+    asyncUseUserBalance,
+    getBalanceUpdateInfo,
+    useBalanceByAdmin
 };
 
 /**
@@ -112,6 +115,83 @@ async function asyncUseUserBalance(userId, amount) {
                 reject(errorTexts.forEnyCase)
             })
     });
+}
+
+async function getBalanceUpdateInfo(data) {
+    let payForCredit = 0;
+    let payForBalance = 0;
+
+    let balanceInfo = data.editableUserInfo.balance;
+    let reqInfo = data.body;
+
+    let amountInfo = await Helper.checkAmount(reqInfo.currency, reqInfo.amount);
+
+    if (balanceInfo.currentCredit > 0) {
+        if (amountInfo.amount > balanceInfo.currentCredit) {
+            payForCredit = balanceInfo.currentCredit;
+            payForBalance = amountInfo.amount - payForCredit;
+        }
+        else {
+            payForCredit = amountInfo.amount;
+        }
+    }
+    else {
+        payForBalance = amountInfo.amount;
+    }
+
+    let updateBalanceInfo = {
+        currency: amountInfo.currency,
+        rate: amountInfo.rate,
+        updateInfo: {$inc: {
+                "balance.currentBalance": payForBalance,
+                "balance.currentCredit": -payForCredit
+            }}
+    };
+
+    return updateBalanceInfo;
+}
+
+async function useBalanceByAdmin(data) {
+    let getFromCredit = 0;
+    let getFromBalance = 0;
+
+    let currentBalance = data.editableUserInfo.balance.currentBalance;
+    let currentCredit = data.editableUserInfo.balance.currentCredit;
+    let maxCredit = data.editableUserInfo.balance.maxCredit;
+
+    let reqInfo = data.body;
+
+    // get amount by default currency
+    let amountInfo = await Helper.checkAmount(reqInfo.currency, reqInfo.amount);
+
+    if (amountInfo.amount > currentBalance) {
+        getFromBalance = currentBalance;
+
+        if ((amountInfo.amount - getFromBalance) > (maxCredit - currentCredit)) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Your request cannot be completed: user balance less than you request!"
+            })
+        }
+        else {
+            getFromCredit = amountInfo.amount - getFromBalance;
+        }
+    }
+    else {
+        getFromBalance = amountInfo.amount;
+    }
+
+    return {
+        currency: amountInfo.currency,
+        rate: amountInfo.rate,
+        updateInfo: {
+            $inc: {
+                "balance.currentBalance": -getFromBalance,
+                "balance.currentCredit": getFromCredit
+            }
+        }
+    };
 }
 
 module.exports = userHelper;

@@ -10,6 +10,7 @@ const ObjectID      = require('mongodb').ObjectID;
 
 const flightHelper = {
     getFlight,
+    getFlightByFlightId,
     getFlightAvailableSeats
 };
 
@@ -33,6 +34,26 @@ function getFlight(data) {
                 else {
                     data.flightInfo = docInfo;
                     resolve(data)
+                }
+            })
+            .catch(reject)
+    });
+}
+
+async function getFlightByFlightId(flightId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "flights";
+    documentInfo.filterInfo = {_id: ObjectID(flightId)};
+    documentInfo.projectionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (null === docInfo) {
+                    reject(errorTexts.incorrectFlightId)
+                }
+                else {
+                    resolve(docInfo)
                 }
             })
             .catch(reject)

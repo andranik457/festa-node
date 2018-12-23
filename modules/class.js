@@ -7,7 +7,9 @@ const _             = require("underscore");
 const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const Helper        = require("../modules/helper");
-const FlightHelper  = require("../modules/flightHelper");
+const flightHelper  = require("../modules/flightHelper");
+const classHelper   = require("../modules/classHelper");
+const orderHelper   = require("../modules/orderHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const ObjectID      = require('mongodb').ObjectID;
@@ -169,7 +171,8 @@ const classInfo = {
 
         return new Promise((resolve, reject) => {
             if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
+                reject(errorTexts.userRole);
+                return
             }
 
             if (!ObjectID.isValid(data.flightId)) {
@@ -177,8 +180,8 @@ const classInfo = {
             }
 
             Helper.validateData(data)
-                .then(FlightHelper.getFlight)
-                .then(FlightHelper.getFlightAvailableSeats)
+                .then(flightHelper.getFlight)
+                .then(flightHelper.getFlightAvailableSeats)
                 .then(validateNumberOfSeats)
                 .then(checkClassName)
                 .then(saveClass)
@@ -198,7 +201,7 @@ const classInfo = {
      * @param req
      * @returns {Promise<any>}
      */
-    edit: req => {
+    edit: async (req) => {
 
         const possibleFields = {
             numberOfSeats: {
@@ -308,28 +311,39 @@ const classInfo = {
             classId: req.params.classId.toString(),
         };
 
-        return new Promise((resolve, reject) => {
-            if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
-            }
+        // check action maker role
+        if ("Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
 
-            if (!ObjectID.isValid(data.classId)) {
-                reject(errorTexts.mongId)
-            }
+        // check is correct mongoId
+        if (!ObjectID.isValid(data.classId)) {
+            return Promise.reject(errorTexts.mongId);
+        }
 
-            return new Promise((resolve, reject) => {
-                Helper.getEditableFields(data)
-                    .then(Helper.getEditableFieldsValues)
-                    .then(Helper.validateData)
-                    .then(resolve)
-                    .catch(reject)
+        // get editable fields
+        await Helper.getEditableFields(data);
+
+        // get editable fields values
+        await Helper.getEditableFieldsValues(data);
+
+        // validate data
+        await Helper.validateData(data);
+
+        // get flight info by id
+        data.classInfo = await classHelper.getClassByClassId(data.classId);
+        if (null === data.classInfo) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Class not found: please check classId and try again"
             })
-                .then(updateClass)
-                .then(data => {
-                    resolve(successTexts.classUpdated)
-                })
-                .catch(reject)
-        });
+        }
+
+        // update Class
+        await updateClass(data);
+
+        return Promise.resolve(successTexts.classUpdated)
 
     },
 
@@ -530,13 +544,26 @@ function checkClassName(data) {
  * @param data
  * @returns {Promise<any>}
  */
-function updateClass(data) {
+async function updateClass(data) {
     if ('{}' === JSON.stringify(data.editableFieldsValues)) {
         return Promise.reject({
             code: 400,
             status: "error",
             message: "Please check editable fields and try again"
         })
+    }
+    else {
+        // check orders with flightId | get orders with flightId
+        let ordersCount = await orderHelper.getOrdersByClassId(data.classId);
+        let preOrdersCount = await orderHelper.getPreOrdersByClassId(data.classId);
+
+        if (ordersCount > 0 || preOrdersCount > 0) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "You have some complete or pending orders with this class: please check them and try again"
+            })
+        }
     }
 
     for (let i in data.editableFieldsValues) {

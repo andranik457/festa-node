@@ -28,18 +28,14 @@ router.post("/create/:flightId", (req, res) => {
 /**
  * Edit Class
  */
-router.post("/edit/:classId", (req, res) => {
-    classFunc.edit(req)
-        .then(result => {
-            res.status(result.code);
-            res.send(result)
-        })
-        .catch(err => {
-            winston.log("error", err);
-
-            res.status(err.code);
-            return res.json(err);
-        });
+router.post("/edit/:classId", async (req, res, next) => {
+    try {
+        res.send(await classFunc.edit(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
 });
 
 /**

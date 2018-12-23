@@ -113,6 +113,12 @@ const text = {
         code: 400,
         status: "error",
         message: "Please check pnr and try again (pnr not found)"
+    },
+
+    amountInfo: {
+        code: 400,
+        status: "error",
+        message: "Cant get amount info: Please try again"
     }
 
 };
