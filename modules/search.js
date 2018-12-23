@@ -41,7 +41,7 @@ const searchInfo = {
                 },
                 departureDate: {
                     name: "Departure Date",
-                    type: "date",
+                    type: "onlyDate",
                     minLength: 3,
                     maxLength: 64,
                 },
@@ -62,6 +62,12 @@ const searchInfo = {
                     type: "number",
                     minLength: 1,
                     maxLength: 1,
+                },
+                airline: {
+                    name: "Airline",
+                    type: "text",
+                    minLength: 1,
+                    maxLength: 64,
                 }
             };
         }
@@ -83,13 +89,13 @@ const searchInfo = {
                 },
                 departureDate: {
                     name: "Departure Date",
-                    type: "date",
+                    type: "onlyDate",
                     minLength: 3,
                     maxLength: 64,
                 },
                 returnDate: {
                     name: "Return Date",
-                    type: "date",
+                    type: "onlyDate",
                     minLength: 3,
                     maxLength: 64,
                 },
@@ -110,6 +116,12 @@ const searchInfo = {
                     type: "number",
                     minLength: 1,
                     maxLength: 1,
+                },
+                airline: {
+                    name: "Airline",
+                    type: "text",
+                    minLength: 1,
+                    maxLength: 64,
                 }
             };
         }
@@ -144,14 +156,14 @@ const searchInfo = {
                 },
                 departureDate: {
                     name: "Departure Date",
-                    type: "date",
+                    type: "onlyDate",
                     minLength: 3,
                     maxLength: 64,
                     required: true
                 },
                 returnDate: {
                     name: "Return Date",
-                    type: "date",
+                    type: "onlyDate",
                     minLength: 3,
                     maxLength: 64,
                 },
@@ -172,6 +184,12 @@ const searchInfo = {
                     type: "number",
                     minLength: 1,
                     maxLength: 1,
+                },
+                airline: {
+                    name: "Airline",
+                    type: "text",
+                    minLength: 1,
+                    maxLength: 64,
                 }
             };
         }
@@ -282,17 +300,17 @@ async function mainSearchResult(data) {
  * @returns {Promise<any>}
  */
 async function checkAvailableFlights(data) {
-    // check if isset `departureDate` | split and get only date
-     if (_.has(data.editableFieldsValues, "departureDate")) {
-        let splitDate = data.editableFieldsValues["departureDate"].split(' ');
-        data.editableFieldsValues["departureDate"] = splitDate[0];
-    }
-
-    // check if isset `returnDate` | split and get only date
-    if (_.has(data.editableFieldsValues, "returnDate")) {
-        let splitDate = data.editableFieldsValues["returnDate"].split(' ');
-        data.editableFieldsValues["returnDate"] = splitDate[0];
-    }
+    // // check if isset `departureDate` | split and get only date
+    //  if (_.has(data.editableFieldsValues, "departureDate")) {
+    //     let splitDate = data.editableFieldsValues["departureDate"].split(' ');
+    //     data.editableFieldsValues["departureDate"] = splitDate[0];
+    // }
+    //
+    // // check if isset `returnDate` | split and get only date
+    // if (_.has(data.editableFieldsValues, "returnDate")) {
+    //     let splitDate = data.editableFieldsValues["returnDate"].split(' ');
+    //     data.editableFieldsValues["returnDate"] = splitDate[0];
+    // }
 
     // try to get available flights | if isset any body data for filter
     if (!_.isEmpty(data.editableFieldsValues)) {
@@ -331,6 +349,7 @@ async function checkAvailableFlights(data) {
                 "departureFrom":    "from",
                 "destinationTo":    "to",
                 "departureDate":    "dateInfo.startDate",
+                "airline":          "airline"
             };
 
             let departureFilter = {
@@ -352,6 +371,7 @@ async function checkAvailableFlights(data) {
                 "departureFrom":    "to",
                 "destinationTo":    "from",
                 "returnDate":       "dateInfo.startDate",
+                "airline":          "airline"
             };
 
             let returnFilter = {
