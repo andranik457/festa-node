@@ -1585,11 +1585,12 @@ function getBalanceHistory(data) {
             .then(res => {
                 _.each(res, value => {
                     historyInfo.push({
-                        type: value.type || "",
-                        rate: value.rate || "",
-                        amount: value.amount || 0,
-                        description: value.description || "",
-                        createdAt: value.createdAt || 0
+                        type:           value.type || "",
+                        rate:           value.rate || "",
+                        currency:       value.currency || "",
+                        amount:         value.amount || 0,
+                        description:    value.description || "",
+                        createdAt:      value.createdAt || 0
                     });
                 });
 
