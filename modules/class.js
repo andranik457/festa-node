@@ -552,12 +552,12 @@ async function updateClass(data) {
             message: "Please check editable fields and try again"
         })
     }
-    else {
+    else if (undefined !== data.body.numberOfSeats) {
         // check orders with flightId | get orders with flightId
         let ordersCount = await orderHelper.getOrdersByClassId(data.classId);
         let preOrdersCount = await orderHelper.getPreOrdersByClassId(data.classId);
 
-        if (ordersCount > 0 || preOrdersCount > 0) {
+        if ((ordersCount + preOrdersCount) > data.body.numberOfSeats) {
             return Promise.reject({
                 code: 400,
                 status: "error",
