@@ -34,7 +34,7 @@ const helper = {
     calculateFlightDuration,
     getEditableFields,
     getEditableFieldsValues,
-    getCurrencyInfo,
+    // getCurrencyInfo,
     checkAmount,
     asyncGetClassPrice,
     asyncGetPnrInfo,
@@ -462,43 +462,43 @@ async function generateUpdateInfo(data) {
  * @returns {{amd: number, usd: number}}
  */
 async function getCurrencyInfo() {
-    let currentDate = moment().format("YYYY-MM-DD");
-
-    let documentInfo = {};
-    documentInfo.collectionName = "exchangeRate";
-    documentInfo.filterInfo = {"date" : currentDate};
-    documentInfo.projectionInfo = {};
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.findDocument(documentInfo)
-            .then(docInfo => {
-                if (docInfo !== null) {
-                    return docInfo.data
-                }
-                else {
-                    return new Promise((resolve, reject) => {
-                        getDailyRate()
-                            .then(dailyRateInfo => {
-                                documentInfo.documentInfo = {
-                                    date: currentDate,
-                                    data: dailyRateInfo
-                                };
-
-                                mongoRequests.insertDocument(documentInfo)
-                                    .then(resolve,reject);
-
-                                return dailyRateInfo;
-                            })
-                            .then(dailyRateInfo => {
-                                resolve(dailyRateInfo)
-                            })
-                            .catch(reject)
-                    })
-                }
-            })
-            .then(resolve)
-            .catch(reject)
-    });
+    // let currentDate = moment().format("YYYY-MM-DD");
+    //
+    // let documentInfo = {};
+    // documentInfo.collectionName = "exchangeRate";
+    // documentInfo.filterInfo = {"date" : currentDate};
+    // documentInfo.projectionInfo = {};
+    //
+    // return new Promise((resolve, reject) => {
+    //     mongoRequests.findDocument(documentInfo)
+    //         .then(docInfo => {
+    //             if (docInfo !== null) {
+    //                 return docInfo.data
+    //             }
+    //             else {
+    //                 return new Promise((resolve, reject) => {
+    //                     getDailyRate()
+    //                         .then(dailyRateInfo => {
+    //                             documentInfo.documentInfo = {
+    //                                 date: currentDate,
+    //                                 data: dailyRateInfo
+    //                             };
+    //
+    //                             mongoRequests.insertDocument(documentInfo)
+    //                                 .then(resolve,reject);
+    //
+    //                             return dailyRateInfo;
+    //                         })
+    //                         .then(dailyRateInfo => {
+    //                             resolve(dailyRateInfo)
+    //                         })
+    //                         .catch(reject)
+    //                 })
+    //             }
+    //         })
+    //         .then(resolve)
+    //         .catch(reject)
+    // });
 
 }
 
@@ -506,23 +506,23 @@ async function getCurrencyInfo() {
  *
  * @returns {Promise<any>}
  */
-async function getDailyRate() {
-    return new Promise((resolve, reject) => {
-        request('http://cb.am/latest.json.php', function (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                let rateObject = JSON.parse(body);
-
-                // append AMD info
-                rateObject["AMD"] = "1";
-
-                resolve(rateObject);
-            }
-            else {
-                reject(error)
-            }
-        });
-    });
-}
+// async function getDailyRate() {
+//     return new Promise((resolve, reject) => {
+//         request('http://cb.am/latest.json.php', function (error, response, body) {
+//             if (!error && response.statusCode == 200) {
+//                 let rateObject = JSON.parse(body);
+//
+//                 // append AMD info
+//                 rateObject["AMD"] = "1";
+//
+//                 resolve(rateObject);
+//             }
+//             else {
+//                 reject(error)
+//             }
+//         });
+//     });
+// }
 
 
 
