@@ -1124,7 +1124,7 @@ module.exports = user;
 function checkIsEmailIsExists(data) {
     let documentInfo = {};
     documentInfo.collectionName = "users";
-    documentInfo.filter = {email: data.body.email};
+    documentInfo.filterInfo = {email: data.body.email};
 
     return new Promise((resolve, reject) => {
         mongoRequests.countDocuments(documentInfo)

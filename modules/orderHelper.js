@@ -66,7 +66,6 @@ async function getOrdersByClassId(classId) {
             {"travelInfo.returnClassInfo._id": ObjectID(classId)},
         ]
     };
-    documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
         mongoRequests.countDocuments(documentInfo)

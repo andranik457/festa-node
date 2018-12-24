@@ -92,7 +92,7 @@ const mongoQueries = {
      */
     countDocuments : data => {
         return new Promise((resolve, reject) => {
-            databaseFesta.collection(data.collectionName).count(data.filter, null, {lean : true})
+            databaseFesta.collection(data.collectionName).count(data.filterInfo, null, {lean : true})
                 .then(resolve, reject)
         });
     },
