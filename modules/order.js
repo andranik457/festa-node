@@ -146,6 +146,23 @@ const orderInfo = {
 
         data = await Helper.validateData(data);
 
+        // check payment status
+        let paymentStatus = null;
+        if ("Ticketing" === req.body.ticketStatus) {
+            paymentStatus = "Paid";
+        }
+        else if ("Booking" === req.body.ticketStatus) {
+            paymentStatus = "Unpaid";
+        }
+        else {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Please check ticket status and tyr again!"
+            })
+        }
+
+        // check and validate passenger info
         let passengersInfo = JSON.parse(Buffer.from(req.body.passengersInfo, 'base64').toString('utf8'));
 
         let passengerInfo = [];
@@ -219,6 +236,7 @@ const orderInfo = {
         let orderInfo = {
             pnr:                    req.body.pnr,
             agentId:                req.body.agentId,
+            paymentStatus:          req.body.paymentStatus,
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
             ticketPrice:            ticketFullPrice,
