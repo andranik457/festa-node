@@ -577,7 +577,7 @@ async function createValidateFormDependPassengerType(body) {
                 name: "Date of birth",
                 type: "number",
                 minLength: 4,
-                maxLength: 4,
+                maxLength: 24,
                 required: true
             },
         };
@@ -611,6 +611,13 @@ async function createValidateFormDependPassengerType(body) {
                 type: "text",
                 minLength: 3,
                 maxLength: 18,
+                required: true
+            },
+            dob: {
+                name: "Date of birth",
+                type: "number",
+                minLength: 4,
+                maxLength: 24,
                 required: true
             },
         };
