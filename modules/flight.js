@@ -68,7 +68,7 @@ const flight = {
             flightNumber: {
                 name: "Flight Number",
                 type: "text",
-                minLength: 3,
+                minLength: 2,
                 maxLength: 64,
                 required: true
             },
@@ -82,14 +82,14 @@ const flight = {
             airline: {
                 name: "Airline",
                 type: "text",
-                minLength: 3,
+                minLength: 2,
                 length: 64,
                 required: true
             },
             airlineIataIcao: {
                 name: "Airline IATA ICAO",
                 type: "text",
-                minLength: 3,
+                minLength: 2,
                 length: 64,
                 required: true
             },
@@ -104,7 +104,7 @@ const flight = {
                 name: "Currency",
                 type: "text",
                 minLength: 3,
-                length: 64,
+                length: 3,
                 required: true
             }
         };
@@ -166,7 +166,7 @@ const flight = {
             flightNumber: {
                 name: "Flight Number",
                 type: "text",
-                minLength: 3,
+                minLength: 2,
                 maxLength: 64,
             },
             duration: {
@@ -178,13 +178,13 @@ const flight = {
             airline: {
                 name: "Airline",
                 type: "text",
-                minLength: 3,
+                minLength: 2,
                 length: 64,
             },
             airlineIataIcao: {
                 name: "Airline IATA ICAO",
                 type: "text",
-                minLength: 3,
+                minLength: 2,
                 length: 64,
             },
             numberOfSeats: {
