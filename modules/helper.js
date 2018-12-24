@@ -38,7 +38,8 @@ const helper = {
     checkAmount,
     asyncGetClassPrice,
     asyncGetPnrInfo,
-    asyncGetExchangeRateByDate
+    asyncGetExchangeRateByDate,
+    extend
 };
 
 /**
@@ -888,6 +889,17 @@ async function asyncPrivatePriceInfoWithRate(price, currency) {
         infantPrice:                Math.round((price.infantPrice * localRate) * 100) / 100,
         infantPriceFlightCurrency:  price.infantPrice,
     }
+}
+
+async function extend(target) {
+    let sources = [].slice.call(arguments, 1);
+    sources.forEach(function (source) {
+        for (let prop in source) {
+            target[prop] = source[prop];
+        }
+    });
+
+    return target;
 }
 
 

@@ -11,7 +11,9 @@ const ObjectID      = require('mongodb').ObjectID;
 const flightHelper = {
     getFlight,
     getFlightByFlightId,
-    getFlightAvailableSeats
+    getFlightAvailableSeats,
+    getFlightByClassId,
+    getFlightAvailableSeatsCountByFlightId
 };
 
 /**
@@ -84,6 +86,75 @@ function getFlightAvailableSeats(data) {
                 data.existedClassesInfo = classMainInfo;
 
                 resolve(data)
+            })
+            .catch(reject)
+    });
+}
+
+async function getFlightByClassId(classId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        _id: ObjectID(classId)
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (null !== docInfo) {
+
+                    let documentInfo = {};
+                    documentInfo.collectionName = "flights";
+                    documentInfo.filterInfo = {
+                        _id: ObjectID(docInfo.flightId)
+                    };
+                    return new Promise((resolve, reject) => {
+                        mongoRequests.findDocument(documentInfo)
+                            .then(docInfo => {
+                                if (null !== docInfo) {
+                                    resolve(docInfo)
+                                }
+                                else {
+                                    reject({
+                                        code: 400,
+                                        status: "error",
+                                        message: "Please check flightId and try again"
+                                    })
+                                }
+                            })
+                    });
+
+                }
+                else {
+                    reject({
+                        code: 400,
+                        status: "error",
+                        message: "Please check classId and try again"
+                    })
+                }
+            })
+            .then(resolve)
+            .catch(reject)
+    });
+}
+
+async function getFlightAvailableSeatsCountByFlightId(flightId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        flightId: flightId
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(classesInfo => {
+                let flightUsedPlaces = 0;
+
+                for (let i in classesInfo) {
+                    flightUsedPlaces += classesInfo[i].numberOfSeats
+                }
+
+                resolve(flightUsedPlaces)
             })
             .catch(reject)
     });

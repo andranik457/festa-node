@@ -545,6 +545,9 @@ function checkClassName(data) {
  * @returns {Promise<any>}
  */
 async function updateClass(data) {
+    let currentTime = Math.floor(Date.now() / 1000);
+    let updateInfo = {};
+
     if ('{}' === JSON.stringify(data.editableFieldsValues)) {
         return Promise.reject({
             code: 400,
@@ -553,17 +556,10 @@ async function updateClass(data) {
         })
     }
     else if (undefined !== data.body.numberOfSeats) {
-        // check orders with flightId | get orders with flightId
-        let ordersCount = await orderHelper.getOrdersByClassId(data.classId);
-        let preOrdersCount = await orderHelper.getPreOrdersByClassId(data.classId);
+        // check new seats count is possible
+        let seatsResult = await classHelper.checkIsPossibleSeatsCount(data.classId, data.body.numberOfSeats);
 
-        if ((ordersCount + preOrdersCount) > data.body.numberOfSeats) {
-            return Promise.reject({
-                code: 400,
-                status: "error",
-                message: "You have some complete or pending orders with this class: please check them and try again"
-            })
-        }
+        updateInfo.availableSeats = data.body.numberOfSeats - seatsResult.userSeatsInOrders
     }
 
     for (let i in data.editableFieldsValues) {
@@ -575,10 +571,11 @@ async function updateClass(data) {
         }
     }
 
-    let currentTime = Math.floor(Date.now() / 1000);
-
-    let updateInfo = data.editableFieldsValues;
+    updateInfo = await Helper.extend(updateInfo, data.editableFieldsValues);
+    // let updateInfo = data.editableFieldsValues;
     updateInfo.updatedAt = currentTime;
+
+    console.log(updateInfo);
 
     let documentInfo = {};
     documentInfo.collectionName = "classes";
