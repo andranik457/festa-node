@@ -104,7 +104,6 @@ const orderInfo = {
                 type: "text",
                 minLength: 1,
                 maxLength: 128,
-                required: true
             },
             contactPersonFullName: {
                 name: "Contact Person Full name",
@@ -240,7 +239,7 @@ const orderInfo = {
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
             ticketPrice:            ticketFullPrice,
-            comment:                req.body.comment,
+            comment:                req.body.comment || "",
             contactPersonInfo:      {
                 fullName:  req.body.contactPersonFullName,
                 email:     req.body.contactPersonEmail,
@@ -717,7 +716,7 @@ async function twoWayTripData(data) {
     let returnClassPriceInfo = await Helper.asyncGetClassPrice(returnClassInfo.data, data, returnFlightInfo.data.currency);
 
     if (departureFlightInfo.data.airline !== returnFlightInfo.data.airline) {
-        return errorTexts.differentAirlines;
+        return Promise.reject(errorTexts.differentAirlines)
     }
     else {
         return {
