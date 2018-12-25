@@ -379,7 +379,7 @@ async function updateFlight(data) {
             message: "Please check editable fields and try again"
         })
     }
-    else {
+    else if ((undefined !== data.editableFieldsValues.startDate) || (undefined !== data.editableFieldsValues.endDate)) {
         // check orders with flightId | get orders with flightId
         let ordersCount = await orderHelper.getOrdersByFlightId(data.flightId);
         let preOrdersCount = await orderHelper.getPreOrdersByFlightId(data.flightId);
