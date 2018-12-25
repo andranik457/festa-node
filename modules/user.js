@@ -46,15 +46,16 @@ const user = {
                 maxLength: 64,
                 required: true
             },
-            tin: {
-                name: "TIN",
-                type: "number",
+            ceoNameSurname: {
+                name: "CEO Name Surname",
+                type: "text",
+                format: "latin",
                 minLength: 3,
                 maxLength: 64,
                 required: true
             },
-            ceoName: {
-                name: "CEO Name",
+            contactNameSurname: {
+                name: "Contact Name Surname",
                 type: "text",
                 format: "latin",
                 minLength: 3,
@@ -63,6 +64,13 @@ const user = {
             },
             phone: {
                 name: "Phone Number",
+                type: "phoneNumber",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            mobilePhone: {
+                name: "Mobile Phone Number",
                 type: "phoneNumber",
                 minLength: 3,
                 length: 64,
@@ -82,6 +90,13 @@ const user = {
                 length: 64,
                 required: true
             },
+            confirmPassword: {
+                name: "Password",
+                type: "password",
+                minLength: 8,
+                length: 64,
+                required: true
+            },
             country: {
                 name: "Country",
                 type: "text",
@@ -93,6 +108,20 @@ const user = {
                 name: "City",
                 type: "text",
                 minLength: 3,
+                length: 64,
+                required: true
+            },
+            address: {
+                name: "Address",
+                type: "text",
+                minLength: 3,
+                length: 64,
+                required: true
+            },
+            checkbox: {
+                name: "Checkbox",
+                type: "text",
+                minLength: 1,
                 length: 64,
                 required: true
             }
@@ -110,10 +139,23 @@ const user = {
                     code: 400,
                     status: "error",
                     message: "Please check request and try again!"
-                })
+                });
+                return
             }
 
             Helper.validateData(data)
+                .then(data => {
+                    if (data.body.password !== data.body.confirmPassword) {
+                        reject({
+                            code: 400,
+                            status: "error",
+                            message: "Passwords need to be the same"
+                        });
+                        return
+                    }
+
+                    return data
+                })
                 .then(checkIsEmailIsExists)
                 .then(Helper.getNewUserId)
                 .then(Helper.getVerificationToken)
@@ -387,7 +429,6 @@ const user = {
                 format: "latin",
                 minLength: 3,
                 maxLength: 64,
-                required: true
             },
             businessName: {
                 name: "Business Name",
@@ -395,36 +436,38 @@ const user = {
                 format: "latin",
                 minLength: 3,
                 maxLength: 64,
-                required: true
             },
             vat: {
                 name: "VAT",
                 type: "number",
                 minLength: 3,
                 maxLength: 64,
-                required: true
             },
-            tin: {
-                name: "TIN",
-                type: "number",
-                minLength: 3,
-                maxLength: 64,
-                required: true
-            },
-            ceoName: {
-                name: "CEO Name",
+            ceoNameSurname: {
+                name: "CEO Name Surname",
                 type: "text",
                 format: "latin",
                 minLength: 3,
                 maxLength: 64,
-                required: true
+            },
+            contactNameSurname: {
+                name: "Contact Name Surname",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
             },
             phone: {
                 name: "Phone Number",
                 type: "phoneNumber",
                 minLength: 3,
                 length: 64,
-                required: true
+            },
+            mobilePhone: {
+                name: "Mobile Phone Number",
+                type: "phoneNumber",
+                minLength: 3,
+                length: 64,
             },
             email: {
                 name: "Email Address",
@@ -438,35 +481,36 @@ const user = {
                 type: "password",
                 minLength: 8,
                 length: 64,
-                required: true
             },
             country: {
                 name: "Country",
                 type: "text",
                 minLength: 3,
                 length: 64,
-                required: true
             },
             city: {
                 name: "City",
                 type: "text",
                 minLength: 3,
                 length: 64,
-                required: true
             },
             status: {
                 name: "Status",
                 type: "text",
                 minLength: 3,
                 length: 64,
-                required: true,
+            },
+            address: {
+                name: "Address",
+                type: "text",
+                minLength: 3,
+                length: 64,
             },
             role: {
                 name: "Role",
                 type: "text",
                 minLength: 3,
                 length: 64,
-                required: true,
             }
         };
 
@@ -475,12 +519,14 @@ const user = {
             userInfo: req.userInfo,
             userId: req.params.userId.toString(),
             possibleForm: possibleForm,
+            editableFields: possibleForm,
             editableFieldsValues: req.body
         };
 
         return new Promise((resolve, reject) => {
             if ("Admin" !== data.userInfo.role) {
-                reject(errorTexts.userRole)
+                reject(errorTexts.userRole);
+                return
             }
 
             return new Promise((resolve, reject) => {
@@ -1152,11 +1198,13 @@ function saveUser(data) {
         salt:               currentTime,
         email:              data.body.email,
         vat:                data.body.vat,
-        tin:                data.body.tin,
-        ceoName:            data.body.ceoName,
+        ceoNameSurname:     data.body.ceoNameSurname,
+        contactNameSurname: data.body.contactNameSurname,
         phone:              data.body.phone,
+        mobilePhone:        data.body.mobilePhone,
         country:            data.body.country,
         city:               data.body.city,
+        address:            data.body.address,
         balance: {
             currentBalance: 0,
             currentCredit:  0,
