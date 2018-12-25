@@ -39,7 +39,8 @@ const helper = {
     asyncGetClassPrice,
     asyncGetPnrInfo,
     asyncGetExchangeRateByDate,
-    extend
+    extend,
+    addToLogs
 };
 
 /**
@@ -900,6 +901,29 @@ async function extend(target) {
     });
 
     return target;
+}
+
+async function addToLogs(logData) {
+    let currentTime = Math.floor(Date.now() / 1000);
+
+    let documentInfo = {};
+    documentInfo.collectionName = "logs";
+    documentInfo.documentInfo = {
+        userId:     logData.userId,
+        action:     logData.action,
+        oldData:    logData.oldData,
+        newData:    logData.newData,
+        createdAt:  currentTime,
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.insertDocument(documentInfo)
+            .then(insertRes => {
+                insertRes.insertedCount === 1
+                    ? resolve("success")
+                    : reject(errorTexts.saveUser)
+            })
+    });
 }
 
 

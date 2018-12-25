@@ -161,6 +161,18 @@ const user = {
                 .then(Helper.getVerificationToken)
                 .then(saveUser)
                 .then(data => {
+                    let logData = {
+                        userId: data.userId,
+                        action: "Insert User",
+                        oldData: null,
+                        newData: data.userInfo,
+                    };
+
+                    Helper.addToLogs(logData);
+
+                    return data
+                })
+                .then(data => {
                     let verificationUrl = config[process.env.NODE_ENV].httpUrl +"/user/verify?token="+ data.verificationToken + "&userId="+ data.userId;
 
                     resolve({
