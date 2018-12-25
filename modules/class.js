@@ -63,98 +63,98 @@ const classInfo = {
             },
             fareAdult: {
                 name: "Fare ADULT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             fareChd: {
                 name: "Fare CHD",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             fareInf: {
                 name: "Fare INF",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             taxAdult: {
                 name: "Tax ADULT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             taxChd: {
                 name: "Tax CHD",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             cat: {
                 name: "CAT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             surchargeMultiDestination: {
                 name: "Surcharge MULTIDEST",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             surchargeLongRange: {
                 name: "Surcharge LONG RANGE",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             surchargeShortRange: {
                 name: "Surcharge SHORT RANGE",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             commAdult: {
                 name: "Comm ADULT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             commChd: {
                 name: "Comm CHD",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             chargeFeeAdult: {
                 name: "Change Fee ADULT",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             chargeFeeChild: {
                 name: "Change Fee CHD",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
             },
             chargeFeeInfant: {
                 name: "Change Fee INF",
-                type: "number",
+                type: "float",
                 minLength: 1,
                 maxLength: 5,
                 required: true
@@ -574,8 +574,6 @@ async function updateClass(data) {
     updateInfo = await Helper.extend(updateInfo, data.editableFieldsValues);
     // let updateInfo = data.editableFieldsValues;
     updateInfo.updatedAt = currentTime;
-
-    console.log(updateInfo);
 
     let documentInfo = {};
     documentInfo.collectionName = "classes";
