@@ -1535,23 +1535,7 @@ function getUsers(data) {
             createdAt : -1
         }
     };
-    documentInfo.projectionInfo = {
-        _id: 0,
-        userId: 1,
-        companyName: 1,
-        businessName: 1,
-        email: 1,
-        vat: 1,
-        tin: 1,
-        ceoName: 1,
-        phone: 1,
-        country: 1,
-        city: 1,
-        balance: 1,
-        status: 1,
-        role: 1,
-        createdAt: 1
-    };
+    documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
