@@ -71,6 +71,10 @@ async function asyncGetUserInfoByEmail(email) {
  * @returns {Promise<*>}
  */
 async function asyncUseUserBalance(userId, amount) {
+    if ("number" !== typeof amount) {
+        return Promise.reject(errorTexts.incorrectAmountType)
+    }
+
     // get userInfo by userId
     let userInfo = await asyncGetUserInfoById(userId);
 

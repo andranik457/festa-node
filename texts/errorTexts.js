@@ -155,6 +155,24 @@ const text = {
         code: 400,
         status: "error",
         message: "Ticket status need to be Ticketing"
+    },
+
+    bookingStatus: {
+        code: 400,
+        status: "error",
+        message: "Ticket status need to be Booking"
+    },
+
+    incorrectAmountType: {
+        code: 400,
+        status: "error",
+        message: "Amount type is not correct"
+    },
+
+    enoughMoney: {
+        code: 400,
+        status: "error",
+        message: "You don't have enough money"
     }
 
 };

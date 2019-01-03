@@ -826,6 +826,74 @@ const orderInfo = {
         else {
             return Promise.reject(refundUpdateInfo)
         }
+    },
+
+    async bookingToTicketing (req) {
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            pnr: req.params.pnr.toString()
+        };
+
+        // get order info by :pnr
+        let orderInfo = await getOrderInfo(data);
+        if (null === orderInfo) {
+            return Promise.reject(errorTexts.pnrNotFound)
+        }
+        else if ("Booking" !== orderInfo.ticketStatus) {
+            return Promise.reject(errorTexts.bookingStatus)
+        }
+
+        // check user role
+        if ("Admin" !== data.userInfo.role && orderInfo.agentId !== data.userInfo.userId) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // log data
+        let logData = {
+            userId: data.userInfo.userId,
+            action: "Booking to Ticketing",
+            oldData: orderInfo,
+            newData: "Ticket Status: Ticketing"
+        };
+
+        // use agent balance
+        let balanceUpdateInfo = await userHelper.asyncUseUserBalance(orderInfo.agentId, orderInfo.ticketPrice.total);
+        if (1 === balanceUpdateInfo.success) {
+            // use seats
+            let useDepartureSeats = await classHelper.asyncUsePlaces(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count)
+            if (1 === useDepartureSeats.success) {
+                // use seats if isset return class
+                if (undefined !== orderInfo.travelInfo.returnClassInfo) {
+                    await classHelper.asyncUsePlaces(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
+                }
+
+                // remove from onHold
+                await classHelper.asyncRemoveOnHoldPlaces(orderInfo.pnr);
+
+                let logsResult = await Helper.addToLogs(logData);
+
+                await makeOrderTicketing(orderInfo.pnr);
+
+                if ("success" === logsResult) {
+                    return Promise.resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully change Booking to Ticketing"
+                    })
+                }
+                else {
+                    return Promise.reject(logsResult)
+                }
+            }
+        }
+        else {
+            return Promise.reject(errorTexts.enoughMoney)
+        }
+
+        // let agentInfo = await userHelper.asyncGetUserInfoById(orderInfo.agentId);
+        // console.log(agentInfo);
+
     }
 
 };
@@ -1606,6 +1674,35 @@ async function makeOrderRefunded(pnr) {
     documentInfo.updateInfo = {
         '$set': {
             "ticketStatus": "Refunded"
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated order status"
+                    })
+                }
+                else {
+                    reject(errorTexts.pnrNotFound)
+                }
+            })
+    });
+}
+
+async function makeOrderTicketing(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        'pnr': pnr
+    };
+    documentInfo.updateInfo = {
+        '$set': {
+            "ticketStatus": "Ticketing"
         }
     };
 

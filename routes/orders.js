@@ -84,4 +84,14 @@ router.post("/refund/:pnr", async (req, res, next) => {
     }
 });
 
+router.get("/booking-to-ticketing/:pnr", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.bookingToTicketing(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 module.exports = router;
