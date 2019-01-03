@@ -149,6 +149,12 @@ const text = {
         code: 400,
         status: "error",
         message: "Cant get amount info: Please try again"
+    },
+
+    ticketingStatus: {
+        code: 400,
+        status: "error",
+        message: "Ticket status need to be Ticketing"
     }
 
 };

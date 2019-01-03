@@ -715,7 +715,119 @@ const orderInfo = {
             return Promise.reject(errorTexts.incorrectOrderStatus)
         }
 
+    },
+
+    async refundOrder (req) {
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            pnr: req.params.pnr.toString()
+        };
+
+        // check user role
+        if ("Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // get order info by :pnr
+        let orderInfo = await getOrderInfo(data);
+        if (null === orderInfo) {
+            return Promise.reject(errorTexts.pnrNotFound)
+        }
+        else if ("Ticketing" !== orderInfo.ticketStatus) {
+            return Promise.reject(errorTexts.ticketingStatus)
+        }
+
+        // check commissions for classes
+        let commissionAmount = 0;
+        let departureCommissionAmount = await Helper.checkCommissionAmount(orderInfo.travelInfo.departureClassInfo.prices, orderInfo.travelInfo.departureClassInfo.currency, orderInfo.travelInfo.departureClassInfo);
+        commissionAmount = commissionAmount + departureCommissionAmount;
+
+        if (undefined !== orderInfo.travelInfo.returnClassInfo) {
+            let returnCommissionAmount = await Helper.checkCommissionAmount(orderInfo.travelInfo.returnClassInfo.prices, orderInfo.travelInfo.returnClassInfo.currency, orderInfo.travelInfo.returnClassInfo);
+            commissionAmount = commissionAmount + returnCommissionAmount;
+        }
+
+        let refundAmount = Math.round((orderInfo.ticketPrice.total - commissionAmount) * 100) / 100;
+
+        // 1. add commission amount to admin balance
+        // 2. add refund amount to agent balance
+        // 3. change order status
+        // 4. add seats to corresponding classes
+        // 5. add to log
+
+        // refund document info
+        let refundInfo = {};
+        refundInfo.body = {
+            currency: "AMD",
+            amount: refundAmount,
+            description: "order refund"
+        };
+        refundInfo.userInfo = req.userInfo;
+        refundInfo.params = {};
+        refundInfo.params.userId = orderInfo.agentId;
+
+        // commission document info
+        let commissionInfo = {};
+        commissionInfo.body = {
+            currency: "AMD",
+            amount: commissionAmount,
+            description: "order refund / commission"
+        };
+        commissionInfo.userInfo = req.userInfo;
+        commissionInfo.params = {};
+        commissionInfo.params.userId = req.userInfo.userId;
+
+        // log data
+        let logData = {
+            userId: data.userInfo.userId,
+            action: "Refund Order",
+            oldData: orderInfo,
+            newData: "Ticket Status: Refund"
+        };
+
+        // add refund price to agent balance
+        let refundUpdateInfo = await userFunc.increaseBalance(refundInfo);
+        if (200 === refundUpdateInfo.code) {
+            // add commission to admin balance
+            let commissionUpdateInfo = await userFunc.increaseBalance(commissionInfo);
+            if (200 === commissionUpdateInfo.code) {
+                // cancel order
+                let updateOrderInfo = await makeOrderRefunded(orderInfo.pnr);
+                if (200 === updateOrderInfo.code) {
+                    // add departure seats to corresponding class
+                    let departureClassSeatsInfo = await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count);
+                    if (200 === departureClassSeatsInfo.code) {
+                        if (undefined !== orderInfo.travelInfo.returnClassInfo) {
+                            await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
+                        }
+
+                        let logsResult = await Helper.addToLogs(logData);
+                        if ("success" === logsResult) {
+                            return Promise.resolve({
+                                code: 200,
+                                status: "success",
+                                message: "You successfully refund order"
+                            })
+                        }
+                        else {
+                            return Promise.reject(logsResult)
+                        }
+                    }
+                }
+                else {
+                    return Promise.reject(updateOrderInfo)
+                }
+            }
+            else {
+                return Promise.reject(commissionUpdateInfo)
+            }
+        }
+        else {
+            return Promise.reject(refundUpdateInfo)
+        }
     }
+
 };
 
 
@@ -1465,6 +1577,35 @@ async function makeOrderCanceled(pnr) {
     documentInfo.updateInfo = {
         '$set': {
             "ticketStatus": "Canceled"
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated order status"
+                    })
+                }
+                else {
+                    reject(errorTexts.pnrNotFound)
+                }
+            })
+    });
+}
+
+async function makeOrderRefunded(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        'pnr': pnr
+    };
+    documentInfo.updateInfo = {
+        '$set': {
+            "ticketStatus": "Refunded"
         }
     };
 

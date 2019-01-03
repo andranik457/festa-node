@@ -74,4 +74,14 @@ router.post("/cancel/:pnr", async (req, res, next) => {
     }
 });
 
+router.post("/refund/:pnr", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.refundOrder(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 module.exports = router;

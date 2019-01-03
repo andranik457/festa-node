@@ -40,7 +40,8 @@ const helper = {
     asyncGetPnrInfo,
     asyncGetExchangeRateByDate,
     extend,
-    addToLogs
+    addToLogs,
+    checkCommissionAmount
 };
 
 /**
@@ -926,5 +927,31 @@ async function addToLogs(logData) {
     });
 }
 
+async function checkCommissionAmount(pricesInfo, currency, classInfo) {
+    let commissionAmount = 0;
+    for (let i in pricesInfo) {
+        let priceInfo = pricesInfo[i];
+
+        for (let key in priceInfo) {
+            if ("adultPriceInfo" === key) {
+                let commissionInfo = await checkAmount(currency, classInfo.chargeFeeAdult);
+
+                commissionAmount = commissionAmount + Math.round((parseFloat(priceInfo[key].count) * parseFloat(commissionInfo.amount)) * 100) / 100;
+            }
+            else if ("childPriceInfo" === key) {
+                let commissionInfo = await checkAmount(currency, classInfo.chargeFeeChild);
+
+                commissionAmount = commissionAmount + Math.round((parseFloat(priceInfo[key].count) * parseFloat(commissionInfo.amount)) * 100) / 100;
+            }
+            else if ("infantPriceInfo" === key) {
+                let commissionInfo = await checkAmount(currency, classInfo.chargeFeeInfant);
+
+                commissionAmount = commissionAmount + Math.round((parseFloat(priceInfo[key].count) * parseFloat(commissionInfo.amount)) * 100) / 100;
+            }
+        }
+    }
+
+    return commissionAmount;
+}
 
 module.exports = helper;

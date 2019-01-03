@@ -572,7 +572,7 @@ const user = {
             },
             amount: {
                 name: "Amount",
-                type: "number",
+                type: "float",
                 required: true
             },
             description: {
