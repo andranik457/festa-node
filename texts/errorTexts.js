@@ -121,10 +121,28 @@ const text = {
         message: "Please check ticket value"
     },
 
+    incorrectOrderStatus: {
+        code: 400,
+        status: "error",
+        message: "Incorrect ticket status"
+    },
+
     pnrNotFound: {
         code: 400,
         status: "error",
         message: "Please check pnr and try again (pnr not found)"
+    },
+
+    classNotFound: {
+        code: 400,
+        status: "error",
+        message: "Please check classId and try again (classId not found)"
+    },
+
+    onHoldSeats: {
+        code: 400,
+        status: "error",
+        message: "Can't remove onHold seats"
     },
 
     amountInfo: {

@@ -15,7 +15,8 @@ const classHelper = {
     getClassesByFlightId,
     getClassByClassId,
     asyncRemoveOnHoldPlaces,
-    checkIsPossibleSeatsCount
+    checkIsPossibleSeatsCount,
+    increaseAvailableSeatsCount
 };
 
 /**
@@ -176,6 +177,36 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
     return {
         userSeatsInOrders: seatsInOrders
     }
+}
+
+async function increaseAvailableSeatsCount(classId, seatsCount) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        "_id": classId
+    };
+    documentInfo.updateInfo = {
+        "$inc": {
+            "availableSeats": seatsCount
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated class available seats count"
+                    })
+                }
+                else {
+                    reject(errorTexts.classNotFound)
+                }
+            })
+    });
+
 }
 
 module.exports = classHelper;

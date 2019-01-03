@@ -384,9 +384,9 @@ const user = {
                     // if (userDocInfo.token !== req) {
                     //
                     // }
-                    delete data.userDocInfo["_id"]
-                    delete data.userDocInfo["password"]
-                    delete data.userDocInfo["token"]
+                    delete data.userDocInfo["_id"];
+                    delete data.userDocInfo["password"];
+                    delete data.userDocInfo["token"];
 
                     resolve({
                         code: 200,

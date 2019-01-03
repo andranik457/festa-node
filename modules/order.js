@@ -12,6 +12,7 @@ const Helper        = require("../modules/helper");
 const FlightHelper  = require("../modules/flightHelper");
 const flightFunc    = require("../modules/flight");
 const classFunc     = require("../modules/class");
+const userFunc      = require("../modules/user");
 const userHelper    = require("../modules/userHelper");
 const classHelper   = require("../modules/classHelper");
 const orderHelper   = require("../modules/orderHelper");
@@ -351,8 +352,370 @@ const orderInfo = {
             message: "",
             data: orderInfo
         });
-    }
+    },
 
+    async editOrder (req) {
+
+        let possibleFields = {};
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            editableFieldsValues: req.body,
+            pnr: req.params.pnr.toString()
+        };
+
+        // get order by pnr
+        let orderInfo = await getOrderInfo(data);
+        if (null === orderInfo) {
+            return Promise.reject(errorTexts.pnrNotFound)
+        }
+
+        // check user role
+        if ("Admin" === data.userInfo.role) {
+            possibleFields = {
+                comment: {
+                    name: "Comment",
+                    type: "text",
+                    minLength: 1,
+                    maxLength: 128,
+                },
+                contactPersonFullName: {
+                    name: "Contact Person Full name",
+                    type: "text",
+                    minLength: 3,
+                    maxLength: 128,
+                },
+                contactPersonEmail: {
+                    name: "Contact Person email",
+                    type: "email",
+                    minLength: 3,
+                    maxLength: 64,
+                },
+                contactPersonTelephone: {
+                    name: "Contact Person telephone",
+                    type: "telephone",
+                    minLength: 3,
+                    maxLength: 64,
+                },
+                passengersInfo: {
+                    name: "Passengers Info",
+                    type: "text",
+                    minLength: 3,
+                    maxLength: 2048,
+                }
+            };
+            data.possibleForm = possibleFields;
+
+            // get editable fields
+            await Helper.getEditableFields(data);
+
+            // get editable fields values
+            await Helper.getEditableFieldsValues(data);
+
+            // validate main info
+            await Helper.validateData(data);
+
+            let currentTime = Math.floor(Date.now() / 1000);
+
+            let updateInfo = {};
+            updateInfo.updatedAt = currentTime;
+
+            // generate update object
+            for (let i in data.editableFieldsValues) {
+                if ("contactPersonFullName" === i) {
+                    updateInfo['contactPersonInfo.fullName'] = data.editableFieldsValues[i]
+                }
+                else if ("contactPersonEmail" === i) {
+                    updateInfo['contactPersonInfo.email'] = data.editableFieldsValues[i]
+                }
+                else if ("contactPersonTelephone" === i) {
+                    updateInfo['contactPersonInfo.telephone'] = data.editableFieldsValues[i]
+                }
+            }
+
+            // check passengers info
+            if (_.has(data.body, "passengersInfo")) {
+                let passengersInfo = JSON.parse(Buffer.from(data.body.passengersInfo, 'base64').toString('utf8'));
+
+                let passengerInfo = [];
+                for (let i in passengersInfo) {
+                    let passengerValidateInfo = await createValidateFormDependPassengerType(passengersInfo[i]);
+
+                    if (_.has(passengerValidateInfo, "code")) {
+                        return passengerValidateInfo;
+                    }
+                    else {
+                        possibleFields = passengerValidateInfo;
+                        possibleFields.ticketNumber = {
+                            name: "Ticket Number",
+                            type: "text",
+                            minLength: 12,
+                            maxLength: 12,
+                            required: true
+                        };
+
+                        let data = {
+                            body: passengersInfo[i],
+                            userInfo: req.userInfo,
+                            possibleForm: possibleFields,
+                            editableFields: possibleFields,
+                            editableFieldsValues: passengersInfo[i]
+                        };
+
+                        // validate passenger data
+                        await Helper.validateData(data);
+
+                        passengerInfo.push(passengersInfo[i]);
+                    }
+                }
+
+                updateInfo.passengerInfo = passengerInfo
+            }
+
+
+            // update order
+            let documentInfo = {};
+            documentInfo.collectionName = "orders";
+            documentInfo.filterInfo = {pnr: data.pnr};
+            documentInfo.updateInfo = {'$set': updateInfo};
+
+            return new Promise((resolve, reject) => {
+                mongoRequests.updateDocument(documentInfo)
+                    .then(updateRes => {
+                        if (updateRes.lastErrorObject.n > 0) {
+                            resolve({
+                                code: 200,
+                                status: "success",
+                                message: "You successfully updated order info"
+                            })
+                        }
+                        else {
+                            reject(errorTexts.pnrNotFound)
+                        }
+                    })
+            });
+
+        }
+        else  if ("user" === data.userInfo.role) {
+            possibleFields = {
+                comment: {
+                    name: "Comment",
+                    type: "text",
+                    minLength: 1,
+                    maxLength: 128,
+                },
+                contactPersonFullName: {
+                    name: "Contact Person Full name",
+                    type: "text",
+                    minLength: 3,
+                    maxLength: 128,
+                },
+                contactPersonEmail: {
+                    name: "Contact Person email",
+                    type: "email",
+                    minLength: 3,
+                    maxLength: 64,
+                },
+                contactPersonTelephone: {
+                    name: "Contact Person telephone",
+                    type: "telephone",
+                    minLength: 3,
+                    maxLength: 64,
+                }
+            };
+            data.possibleForm = possibleFields;
+
+            // get editable fields
+            await Helper.getEditableFields(data);
+
+            // get editable fields values
+            await Helper.getEditableFieldsValues(data);
+
+            // validate main info
+            await Helper.validateData(data);
+
+            let currentTime = Math.floor(Date.now() / 1000);
+
+            let updateInfo = {};
+            updateInfo.updatedAt = currentTime;
+
+            // generate update object
+            for (let i in data.editableFieldsValues) {
+                if ("contactPersonFullName" === i) {
+                    updateInfo['contactPersonInfo.fullName'] = data.editableFieldsValues[i]
+                }
+                else if ("contactPersonEmail" === i) {
+                    updateInfo['contactPersonInfo.email'] = data.editableFieldsValues[i]
+                }
+                else if ("contactPersonTelephone" === i) {
+                    updateInfo['contactPersonInfo.telephone'] = data.editableFieldsValues[i]
+                }
+            }
+
+            // update order
+            let documentInfo = {};
+            documentInfo.collectionName = "orders";
+            documentInfo.filterInfo = {pnr: data.pnr};
+            documentInfo.updateInfo = {'$set': updateInfo};
+
+            return new Promise((resolve, reject) => {
+                mongoRequests.updateDocument(documentInfo)
+                    .then(updateRes => {
+                        if (updateRes.lastErrorObject.n > 0) {
+                            resolve({
+                                code: 200,
+                                status: "success",
+                                message: "You successfully updated order info"
+                            })
+                        }
+                        else {
+                            reject(errorTexts.pnrNotFound)
+                        }
+                    })
+            });
+        }
+        else {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+    },
+
+    async cancelOrder (req) {
+        let currentTime = Math.floor(Date.now() / 1000);
+
+        let possibleFields = {
+            commission: {
+                name: "Commission",
+                type: "float",
+                minLength: 1,
+                maxLength: 10,
+                required: true
+            },
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body,
+            pnr: req.params.pnr.toString()
+        };
+
+        // validate data
+        await Helper.validateData(data);
+
+        // get order by pnr
+        let orderInfo = await getOrderInfo(data);
+        if (null === orderInfo) {
+            return Promise.reject(errorTexts.pnrNotFound)
+        }
+
+        // log data
+        let logData = {
+            userId: data.userInfo.userId,
+            action: "Cancel Order",
+            oldData: orderInfo,
+            newData: "Ticket Status: Canceled"
+        };
+
+        // check order status
+        if ("Ticketing" === orderInfo.ticketStatus) {
+
+            // check user role
+            if ("Admin" !== data.userInfo.role) {
+                return Promise.reject(errorTexts.userRole)
+            }
+
+            // increase balance
+            let increaseInfo = {};
+            increaseInfo.body = {
+                currency: "AMD",
+                amount: orderInfo.ticketPrice.total,
+                description: "cancel order"
+            };
+            increaseInfo.userInfo = req.userInfo;
+            increaseInfo.params = {};
+            increaseInfo.params.userId = orderInfo.agentId;
+
+            // 1. add price to user balance
+            // 2. update orderStatus
+            // 3. return seats to departure class
+            // 4. return seats to return class | if set
+            // 5. add info to log
+
+            // add price to user balance
+            let balanceUpdateInfo = await userFunc.increaseBalance(increaseInfo);
+            if (200 === balanceUpdateInfo.code) {
+                // cancel order
+                let updateOrderInfo = await makeOrderCanceled(data.pnr);
+                if (200 === updateOrderInfo.code) {
+                    // add departure seats to corresponding class
+                    let departureClassSeatsInfo = await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count);
+                    if (200 === departureClassSeatsInfo.code) {
+                        if (undefined !== orderInfo.travelInfo.returnClassInfo) {
+                            await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
+                        }
+
+                        let logsResult = await Helper.addToLogs(logData);
+                        if ("success" === logsResult) {
+                            return Promise.resolve({
+                                code: 200,
+                                status: "success",
+                                message: "You successfully canceled order"
+                            })
+                        }
+                        else {
+                            return Promise.reject(logsResult)
+                        }
+                    }
+                    else {
+                        return Promise.reject(departureClassSeatsInfo)
+                    }
+                }
+                else {
+                    return Promise.reject(updateOrderInfo)
+                }
+            }
+            else {
+                return Promise.reject(balanceUpdateInfo)
+            }
+        }
+        else if ("Booking" === orderInfo.ticketStatus) {
+            // 1. update orderStatus
+            // 2. remove onHold seats for departure class
+            // 3. remove onHold seats for return class | if set
+            // 4. add info to log
+
+            let updateOrderInfo = await makeOrderCanceled(data.pnr);
+            if (200 === updateOrderInfo.code) {
+                let onHoldSeatsInfo = await classHelper.asyncRemoveOnHoldPlaces(data.pnr)
+                if (1 === onHoldSeatsInfo.success) {
+                    let logsResult = await Helper.addToLogs(logData);
+                    if ("success" === logsResult) {
+                        return Promise.resolve({
+                            code: 200,
+                            status: "success",
+                            message: "You successfully canceled order"
+                        })
+                    }
+                    else {
+                        return Promise.reject(logsResult)
+                    }
+                }
+                else {
+                    return Promise.reject(errorTexts.onHoldSeats)
+                }
+            }
+            else {
+                return Promise.reject(updateOrderInfo)
+            }
+        }
+        else {
+            return Promise.reject(errorTexts.incorrectOrderStatus)
+        }
+
+    }
 };
 
 
@@ -1059,6 +1422,11 @@ async function getOrdersInfo(data) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 async function getOrderInfo(data) {
     let orderFilter = {};
     if ("Admin" !== data.userInfo.role) {
@@ -1079,6 +1447,40 @@ async function getOrderInfo(data) {
             })
             .catch(err => {
                 reject(err)
+            })
+    });
+}
+
+/**
+ *
+ * @param pnr
+ * @returns {Promise<any>}
+ */
+async function makeOrderCanceled(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        'pnr': pnr
+    };
+    documentInfo.updateInfo = {
+        '$set': {
+            "ticketStatus": "Canceled"
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated order status"
+                    })
+                }
+                else {
+                    reject(errorTexts.pnrNotFound)
+                }
             })
     });
 }
