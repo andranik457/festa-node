@@ -24,6 +24,13 @@ const classInfo = {
     create: req => {
 
         const possibleFields = {
+            onlyForAdmin: {
+                name: "Only For Admin",
+                type: "text",
+                minLength: 1,
+                maxLength: 32,
+                required: true
+            },
             className: {
                 name: "Class Name",
                 type: "text",
@@ -448,8 +455,15 @@ module.exports = classInfo;
 function saveClass(data) {
     let currentTime = Math.floor(Date.now() / 1000);
 
+    // check onlyForAdmin case
+    let onlyForAdmin = false;
+    if ("True" === data.body.onlyForAdmin) {
+        onlyForAdmin = true;
+    }
+
     let classInfo = {
         flightId:                   data.flightId,
+        onlyForAdmin:               onlyForAdmin,
         className:                  data.body.className,
         classType:                  data.body.classType,
         travelType:                 data.body.travelType,

@@ -300,18 +300,6 @@ async function mainSearchResult(data) {
  * @returns {Promise<any>}
  */
 async function checkAvailableFlights(data) {
-    // // check if isset `departureDate` | split and get only date
-    //  if (_.has(data.editableFieldsValues, "departureDate")) {
-    //     let splitDate = data.editableFieldsValues["departureDate"].split(' ');
-    //     data.editableFieldsValues["departureDate"] = splitDate[0];
-    // }
-    //
-    // // check if isset `returnDate` | split and get only date
-    // if (_.has(data.editableFieldsValues, "returnDate")) {
-    //     let splitDate = data.editableFieldsValues["returnDate"].split(' ');
-    //     data.editableFieldsValues["returnDate"] = splitDate[0];
-    // }
-
     // try to get available flights | if isset any body data for filter
     if (!_.isEmpty(data.editableFieldsValues)) {
         let filter = {
@@ -484,6 +472,7 @@ async function getFlightsDependFilter(filter) {
 /**
  *
  * @param data
+ * @param flightsIds
  * @returns {Promise<any>}
  */
 async function checkAvailableClasses(data, flightsIds) {
@@ -498,12 +487,19 @@ async function checkAvailableClasses(data, flightsIds) {
         needSeatsCount += parseInt(data.body.passengerTypeInfant);
     }
 
+    // check user role
+    let onlyForAdmin = {$ne: true};
+    if ("Admin" === data.userInfo.role) {
+        onlyForAdmin = {$exists: true};
+    }
+
     let documentInfo = {};
     documentInfo.collectionName = "classes";
     // check travel type
     if (travelTypes.oneWay === data.body.travelType) {
         documentInfo.filterInfo = {
             $and: [
+                {onlyForAdmin: onlyForAdmin},
                 {flightId: {$in: flightsIds}},
                 {travelType: travelTypes.oneWay},
                 {availableSeats: {$gte: needSeatsCount}}
@@ -513,6 +509,7 @@ async function checkAvailableClasses(data, flightsIds) {
     else {
         documentInfo.filterInfo = {
             $and: [
+                {onlyForAdmin: onlyForAdmin},
                 {flightId: {$in: flightsIds}},
                 {availableSeats: {$gte: needSeatsCount}}
             ]
