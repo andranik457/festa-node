@@ -626,9 +626,23 @@ function removeClass(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.updateDocument(documentInfo)
             .then(updateRes => {
-                updateRes.ok === 1
-                    ? resolve(data)
-                    : reject(errorTexts.cantUpdateMongoDocument)
+                if (!updateRes.lastErrorObject.updatedExisting) {
+                    reject({
+                        code: 400,
+                        status: "error",
+                        message: "Please check classId and try again (class not found)"
+                    })
+                }
+                else if (updateRes.lastErrorObject.n === 0) {
+                    reject({
+                        code: 400,
+                        status: "error",
+                        message: "Please check classId and try again (class not found)"
+                    })
+                }
+                else {
+                    resolve(data)
+                }
             })
     });
 }
