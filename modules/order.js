@@ -236,7 +236,7 @@ const orderInfo = {
         let orderInfo = {
             pnr:                    req.body.pnr,
             agentId:                req.body.agentId,
-            paymentStatus:          req.body.paymentStatus,
+            paymentStatus:          paymentStatus,
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
             ticketPrice:            ticketFullPrice,
@@ -1403,8 +1403,8 @@ async function createTwoWayPreOrder(data) {
             usedPlaces:             data.passengersCount,
             departureFlightInfo:    data.tripInfo.departureFlightInfo,
             departureClassInfo:     data.tripInfo.departureClassInfo,
-            returnFlightInfo:       data.tripInfo.departureFlightInfo,
-            returnClassInfo:        data.tripInfo.departureClassInfo,
+            returnFlightInfo:       data.tripInfo.returnFlightInfo,
+            returnClassInfo:        data.tripInfo.returnClassInfo,
             updatedAt:              currentTime,
             createdAt:              currentTime
         };
