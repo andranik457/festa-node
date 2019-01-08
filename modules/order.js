@@ -236,6 +236,17 @@ const orderInfo = {
         let orderInfo = {
             pnr:                    req.body.pnr,
             agentId:                req.body.agentId,
+            agentInfo:              {
+                companyName:  agentInfo.companyName || "",
+                businessName: agentInfo.businessName || "",
+                email:        agentInfo.email || "",
+                vat:          agentInfo.vat || "",
+                tin:          agentInfo.tin || "",
+                ceoName:      agentInfo.ceoName || "",
+                phone:        agentInfo.phone || "",
+                country:      agentInfo.country || "",
+                city:         agentInfo.city || "",
+            },
             paymentStatus:          paymentStatus,
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
