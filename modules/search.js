@@ -511,6 +511,7 @@ async function checkAvailableClasses(data, flightsIds) {
             $and: [
                 {onlyForAdmin: onlyForAdmin},
                 {flightId: {$in: flightsIds}},
+                {travelType: {$ne: travelTypes.oneWay}},
                 {availableSeats: {$gte: needSeatsCount}}
             ]
         };

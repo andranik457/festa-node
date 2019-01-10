@@ -964,6 +964,9 @@ async function checkPassengerAge(passengerType, passengerDob, checkDate) {
     else if ("Child" === passengerType && 12 < passengerAge) {
         return false
     }
+    else if ("Infant" === passengerType && 2 < passengerAge) {
+        return false
+    }
 
     return true;
 }
