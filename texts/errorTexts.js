@@ -173,6 +173,12 @@ const text = {
         code: 400,
         status: "error",
         message: "You don't have enough money"
+    },
+
+    incorrectAge: {
+        code: 400,
+        status: "error",
+        message: "Please check passenger age and try again"
     }
 
 };

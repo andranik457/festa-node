@@ -162,6 +162,9 @@ const orderInfo = {
             })
         }
 
+        // check pnr
+        let pnrInfo = await Helper.asyncGetPnrInfo(req.body.pnr);
+
         // check and validate passenger info
         let passengersInfo = JSON.parse(Buffer.from(req.body.passengersInfo, 'base64').toString('utf8'));
 
@@ -188,13 +191,24 @@ const orderInfo = {
                 // validate passenger data
                 await Helper.validateData(data);
 
+                // check passenger date in departure | return dates
+                let passengerAgeInfo = await Promise.all([
+                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.startDate),
+                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.endDate),
+                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.returnFlightInfo.dateInfo.startDate),
+                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.returnFlightInfo.dateInfo.endDate)
+                ]);
+
+                for (let l in passengerAgeInfo) {
+                    if (!passengerAgeInfo[l]) {
+                        return Promise.reject(errorTexts.incorrectAge)
+                    }
+                }
+
                 passengersInfo[i].ticketNumber = ticketNumber;
                 passengerInfo.push(passengersInfo[i]);
             }
         }
-
-        // check pnr
-        let pnrInfo = await Helper.asyncGetPnrInfo(req.body.pnr);
 
         // check ticket value
         if (!(req.body.ticketStatus === "Booking" || req.body.ticketStatus === "Ticketing")) {
@@ -1124,7 +1138,6 @@ async function createValidateFormDependPassengerType(body) {
                 type: "text",
                 minLength: 3,
                 maxLength: 18,
-                required: true
             },
             dob: {
                 name: "Date of birth",
@@ -1164,7 +1177,6 @@ async function createValidateFormDependPassengerType(body) {
                 type: "text",
                 minLength: 3,
                 maxLength: 18,
-                required: true
             },
             dob: {
                 name: "Date of birth",

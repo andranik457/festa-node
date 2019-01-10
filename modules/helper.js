@@ -41,7 +41,8 @@ const helper = {
     asyncGetExchangeRateByDate,
     extend,
     addToLogs,
-    checkCommissionAmount
+    checkCommissionAmount,
+    checkPassengerAge
 };
 
 /**
@@ -190,7 +191,7 @@ async function validateData(data) {
     const validationFields = data.editableFields;
     const checkData = data.editableFieldsValues;
 
-    const latinLettersValidate = /^[a-zA-Z ]+$/;
+    const latinLettersValidate = /^[a-zA-Z -]+$/;
     const emailValidate = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     const passwordValidateLowercase = /^(?=.*[a-z])/;
     const passwordValidateUppercase = /(?=.*[A-Z])/;
@@ -952,6 +953,19 @@ async function checkCommissionAmount(pricesInfo, currency, classInfo) {
     }
 
     return commissionAmount;
+}
+
+async function checkPassengerAge(passengerType, passengerDob, checkDate) {
+    let passengerAge = Math.floor(moment(checkDate).diff(moment(passengerDob),'years',true));
+
+    if ("Adults" === passengerType && 12 >= passengerAge) {
+        return false
+    }
+    else if ("Child" === passengerType && 12 < passengerAge) {
+        return false
+    }
+
+    return true;
 }
 
 module.exports = helper;
