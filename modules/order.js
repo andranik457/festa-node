@@ -192,12 +192,21 @@ const orderInfo = {
                 await Helper.validateData(data);
 
                 // check passenger date in departure | return dates
-                let passengerAgeInfo = await Promise.all([
-                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.startDate),
-                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.endDate),
-                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.returnFlightInfo.dateInfo.startDate),
-                    Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.returnFlightInfo.dateInfo.endDate)
-                ]);
+                let passengerAgeInfo = [];
+                if (undefined !== pnrInfo.returnFlightInfo) {
+                    passengerAgeInfo = await Promise.all([
+                        Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.startDate),
+                        Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.endDate),
+                        Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.returnFlightInfo.dateInfo.startDate),
+                        Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.returnFlightInfo.dateInfo.endDate)
+                    ]);
+                }
+                else {
+                    passengerAgeInfo = await Promise.all([
+                        Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.startDate),
+                        Helper.checkPassengerAge(passengersInfo[i].passengerType, passengersInfo[i].dob, pnrInfo.departureFlightInfo.dateInfo.endDate),
+                    ]);
+                }
 
                 for (let l in passengerAgeInfo) {
                     if (!passengerAgeInfo[l]) {
