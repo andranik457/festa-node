@@ -829,13 +829,40 @@ const orderInfo = {
     },
 
     async refundOrder (req) {
+
+        let possibleFields = {
+            placesDepartureClass: {
+                name: "Place Receiver Departure class",
+                type: "text",
+                minLength: 1,
+                maxLength: 32,
+                required: true
+            },
+            placesReturnClass: {
+                name: "Place Receiver Departure class",
+                type: "text",
+                minLength: 1,
+                maxLength: 32
+            },
+            commissionInfo: {
+                name: "Commission info",
+                type: "text",
+                minLength: 1,
+                maxLength: 2048,
+                required: true
+            }
+        };
+
         let data = {
             body: req.body,
             userInfo: req.userInfo,
-            pnr: req.params.pnr.toString()
+            pnr: req.params.pnr.toString(),
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body
         };
 
-        // validate body data
+        data = await Helper.validateData(data);
 
         // check user role
         if ("Admin" !== data.userInfo.role) {
@@ -888,21 +915,7 @@ const orderInfo = {
 
         /////////////////////////////////////////////////////////////////////////////////////////////
 
-        // 1. -seats from current class
-        // 2. +seats to selected class
-        let departureSeatsRestoreInfo = await Promise.all([
-            classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats),
-            classHelper.increaseClassSeatsCount(departurePlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
-        ]);
-        // console.log(departureSeatsRestoreInfo);
 
-        if (undefined !== orderInfo.travelInfo.returnFlightInfo) {
-            let returnSeatsRestoreInfo = await Promise.all([
-                classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats),
-                classHelper.increaseClassSeatsCount(returnPlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
-            ]);
-            // console.log(returnSeatsRestoreInfo);
-        }
 
 
         //////////////////////////////////////////////////////////////////
@@ -911,6 +924,21 @@ const orderInfo = {
 
         let totalCommission = 0;
         for (let i in passengersInfo) {
+            if (undefined === passengersInfo[i].commission) {
+                return Promise.reject({
+                    code: 400,
+                    status: "error",
+                    message: "Commission is required"
+                })
+            }
+            if (undefined === passengersInfo[i].passengerType) {
+                return Promise.reject({
+                    code: 400,
+                    status: "error",
+                    message: "Passenger Type is required"
+                })
+            }
+
             totalCommission += parseFloat(passengersInfo[i].commission);
         }
 
@@ -972,6 +1000,26 @@ const orderInfo = {
                         if (undefined !== orderInfo.travelInfo.returnClassInfo) {
                             await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
                         }
+
+                        //////////////////////////////
+                        // 1. -seats from current class
+                        // 2. +seats to selected class
+                        let departureSeatsRestoreInfo = await Promise.all([
+                            classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.usedSeats, 0),
+                            classHelper.increaseClassSeatsCount(departurePlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
+                        ]);
+                        // console.log(departureSeatsRestoreInfo);
+
+                        if (undefined !== orderInfo.travelInfo.returnFlightInfo) {
+                            let returnSeatsRestoreInfo = await Promise.all([
+                                classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.usedSeats, 0),
+                                classHelper.increaseClassSeatsCount(returnPlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
+                            ]);
+                            // console.log(returnSeatsRestoreInfo);
+                        }
+                        //////////////////////////////
+
+
 
                         let logsResult = await Helper.addToLogs(logData);
                         if ("success" === logsResult) {
@@ -1123,12 +1171,6 @@ async function createValidateFormDependTravelType(body) {
                 type: "number",
                 minLength: 1,
                 maxLength: 1,
-            },
-            paymentType: {
-                name: "Payment type (cash | online)",
-                type: "text",
-                minLength: 1,
-                maxLength: 64,
             }
         };
     }
@@ -1186,12 +1228,6 @@ async function createValidateFormDependTravelType(body) {
                 type: "number",
                 minLength: 1,
                 maxLength: 1,
-            },
-            paymentType: {
-                name: "Payment type (cash | online)",
-                type: "text",
-                minLength: 1,
-                maxLength: 64,
             }
         };
     }
@@ -1249,12 +1285,6 @@ async function createValidateFormDependTravelType(body) {
                 type: "number",
                 minLength: 1,
                 maxLength: 1,
-            },
-            paymentType: {
-                name: "Payment type (cash | online)",
-                type: "text",
-                minLength: 1,
-                maxLength: 64,
             }
         };
     }
