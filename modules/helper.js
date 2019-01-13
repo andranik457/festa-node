@@ -659,51 +659,60 @@ async function asyncGetClassPrice(classInfo, data, currency) {
     // for one way
     let priceInfo = {};
 
-    if (travelTypes.oneWay === data.body.travelType) {
-        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat);
-        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat);
-        priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+    // start calculating prices
+    priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat) - parseFloat(classInfo.commAdult);
+    priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat) - parseFloat(classInfo.commChd);
+    priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+    // for passenger need to add commission price
+    priceInfo['adultPriceForPassenger'] = priceInfo['adultPrice'] + parseFloat(classInfo.commAdult);
+    priceInfo['childPriceForPassenger'] = priceInfo['childPrice'] + parseFloat(classInfo.commChd);
+    priceInfo['infantPriceForPassenger'] = priceInfo['infantPrice'];
 
+    if (travelTypes.oneWay === data.body.travelType) {
         // append prices to class
         classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
     }
-
     else if (travelTypes.roundTrip === data.body.travelType) {
         // check travel duration
         let flightDuration = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
 
         if (flightDuration > (15 * 1440)) {
-            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
-            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeLongRange);
-            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+            priceInfo['adultPrice'] += parseFloat(classInfo.surchargeLongRange);
+            priceInfo['childPrice'] += parseFloat(classInfo.surchargeLongRange);
+            //
+            priceInfo['adultPriceForPassenger'] += parseFloat(classInfo.surchargeLongRange);
+            priceInfo['childPriceForPassenger'] += parseFloat(classInfo.surchargeLongRange);
 
             // append prices to class
             classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
         }
         else if (flightDuration < (3 * 1440)) {
-            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
-            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeShortRange);
-            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+            priceInfo['adultPrice'] += parseFloat(classInfo.surchargeShortRange);
+            priceInfo['childPrice'] += parseFloat(classInfo.surchargeShortRange);
+            //
+            priceInfo['adultPriceForPassenger'] += parseFloat(classInfo.surchargeShortRange);
+            priceInfo['childPriceForPassenger'] += parseFloat(classInfo.surchargeShortRange);
 
             // append prices to class
             classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
         }
         else {
-            priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat);
-            priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat);
-            priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
-
             // append prices to class
             classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
         }
     }
     else if (travelTypes.multiDestination === data.body.travelType) {
-        priceInfo['adultPrice'] = parseFloat(classInfo.fareAdult) + parseFloat(classInfo.taxAdult) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
-        priceInfo['childPrice'] = parseFloat(classInfo.fareChd) + parseFloat(classInfo.taxChd) + parseFloat(classInfo.cat) + parseFloat(classInfo.surchargeMultiDestination);
-        priceInfo['infantPrice'] = parseFloat(classInfo.fareInf);
+        priceInfo['adultPrice'] += parseFloat(classInfo.surchargeMultiDestination);
+        priceInfo['childPrice'] += parseFloat(classInfo.surchargeMultiDestination);
+        //
+        priceInfo['adultPriceForPassenger'] += parseFloat(classInfo.surchargeMultiDestination);
+        priceInfo['childPriceForPassenger'] += parseFloat(classInfo.surchargeMultiDestination);
 
         // append prices to class
         classInfo = await asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency);
+    }
+    else {
+        return Promise.reject(errorTexts.incorrectTravelType)
     }
 
     return classInfo;
@@ -718,11 +727,15 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
     // check passenger types
     if (typeof data.body.passengerTypeAdults !== 'undefined') {
         let adultPriceInfo = {
-            eachPrice:                  priceInfoWithRate.adultPrice,
-            eachPriceFlightCurrency:    priceInfoWithRate.adultPriceFlightCurrency,
-            count:                      data.body.passengerTypeAdults,
-            totalPrice:                 Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPrice) * 100) /100,
-            totalPriceFlightCurrency:   Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceFlightCurrency) * 100) /100
+            eachPrice:                              priceInfoWithRate.adultPrice,
+            eachPriceForPassenger:                  priceInfoWithRate.adultPriceForPassenger,
+            eachPriceFlightCurrency:                priceInfoWithRate.adultPriceFlightCurrency,
+            eachPriceFlightCurrencyForPassenger:    priceInfoWithRate.adultPriceFlightCurrencyForPassenger,
+            count:                                  data.body.passengerTypeAdults,
+            totalPrice:                             Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPrice) * 100) /100,
+            totalPriceForPassenger:                 Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceForPassenger) * 100) /100,
+            totalPriceFlightCurrency:               Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceFlightCurrency) * 100) /100,
+            totalPriceFlightCurrencyForPassenger:   Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceFlightCurrencyForPassenger) * 100) /100
         };
 
         classInfo.prices.push({
@@ -732,11 +745,15 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
 
     if (typeof data.body.passengerTypeChild !== 'undefined') {
         let childPriceInfo = {
-            eachPrice:                  priceInfoWithRate.childPrice,
-            eachPriceFlightCurrency:    priceInfoWithRate.childPriceFlightCurrency,
-            count:                      data.body.passengerTypeChild,
-            totalPrice:                 Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPrice) * 100) /100,
-            totalPriceFlightCurrency:   Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceFlightCurrency) * 100) /100
+            eachPrice:                              priceInfoWithRate.childPrice,
+            eachPriceForPassenger:                  priceInfoWithRate.childPriceForPassenger,
+            eachPriceFlightCurrency:                priceInfoWithRate.childPriceFlightCurrency,
+            eachPriceFlightCurrencyForPassenger:    priceInfoWithRate.childPriceFlightCurrencyForPassenger,
+            count:                                  data.body.passengerTypeChild,
+            totalPrice:                             Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPrice) * 100) /100,
+            totalPriceForPassenger:                 Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceForPassenger) * 100) /100,
+            totalPriceFlightCurrency:               Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceFlightCurrency) * 100) /100,
+            totalPriceFlightCurrencyForPassenger:   Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceFlightCurrencyForPassenger) * 100) /100
         };
 
         classInfo.prices.push({
@@ -746,11 +763,15 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
 
     if (typeof data.body.passengerTypeInfant !== 'undefined') {
         let infantPrice = {
-            eachPrice:                  priceInfoWithRate.infantPrice,
-            eachPriceFlightCurrency:    priceInfoWithRate.infantPriceFlightCurrency,
-            count:                      data.body.passengerTypeInfant,
-            totalPrice:                 Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPrice) * 100) / 100,
-            totalPriceFlightCurrency:   Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceFlightCurrency) * 100) / 100,
+            eachPrice:                              priceInfoWithRate.infantPrice,
+            eachPriceForPassenger:                  priceInfoWithRate.infantPriceForPassenger           ,
+            eachPriceFlightCurrency:                priceInfoWithRate.infantPriceFlightCurrency,
+            eachPriceFlightCurrencyForPassenger:    priceInfoWithRate.infantPriceFlightCurrencyForPassenger,
+            count:                                  data.body.passengerTypeInfant,
+            totalPrice:                             Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPrice) * 100) / 100,
+            totalPriceForPassenger:                 Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceForPassenger) * 100) / 100,
+            totalPriceFlightCurrency:               Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceFlightCurrency) * 100) / 100,
+            totalPriceFlightCurrencyForPassenger:   Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceFlightCurrencyForPassenger) * 100) / 100
         };
 
         classInfo.prices.push({
@@ -761,32 +782,34 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
     let totalPrices = {
         count: 0,
         totalPrice: 0,
-        totalPriceFlightCurrency: 0
+        totalPriceForPassenger: 0,
+        totalPriceFlightCurrency: 0,
+        totalPriceFlightCurrencyForPassenger: 0
     };
-
-
 
     let priceInfoTotal = null;
     for (let i in classInfo.prices) {
         if (undefined !== classInfo.prices[i].adultPriceInfo) {
-            priceInfoTotal = classInfo.prices[i].adultPriceInfo;
+            priceInfoTotal = classInfo.prices[i].adultPriceInfo
         }
         else if (undefined !== classInfo.prices[i].childPriceInfo) {
-            priceInfoTotal = classInfo.prices[i].childPriceInfo;
+            priceInfoTotal = classInfo.prices[i].childPriceInfo
         }
-        else if (undefined !== classInfo.prices[i].infantPriceInfo) {
-            priceInfoTotal = classInfo.prices[i].infantPriceInfo;
+        else if (undefined !== classInfo.prices[i].infantPrice) {
+            priceInfoTotal = classInfo.prices[i].infantPrice
         }
 
-        totalPrices.count = totalPrices.count + parseInt(priceInfoTotal['count']);
-        totalPrices.totalPrice = Math.round((totalPrices.totalPrice + priceInfoTotal.totalPrice) * 100) / 100;
-        totalPrices.totalPriceFlightCurrency = totalPrices.totalPriceFlightCurrency + priceInfoTotal.totalPriceFlightCurrency
+        totalPrices.count                                   = totalPrices.count + parseInt(priceInfoTotal['count']);
+        totalPrices.totalPrice                              = Math.round((totalPrices.totalPrice + priceInfoTotal.totalPrice) * 100) / 100;
+        totalPrices.totalPriceForPassenger                  = Math.round((totalPrices.totalPriceForPassenger + priceInfoTotal.totalPriceForPassenger) * 100) / 100;
+        totalPrices.totalPriceFlightCurrency                = totalPrices.totalPriceFlightCurrency + priceInfoTotal.totalPriceFlightCurrency;
+        totalPrices.totalPriceFlightCurrencyForPassenger    = totalPrices.totalPriceFlightCurrencyForPassenger + priceInfoTotal.totalPriceFlightCurrencyForPassenger
     }
 
-    classInfo.pricesTotalInfo = totalPrices;
-    classInfo.pricesTotalInfo.date = priceInfoWithRate.date;
-    classInfo.pricesTotalInfo.currency = priceInfoWithRate.currency;
-    classInfo.pricesTotalInfo.rate = priceInfoWithRate.rate;
+    classInfo.pricesTotalInfo           = totalPrices;
+    classInfo.pricesTotalInfo.date      = priceInfoWithRate.date;
+    classInfo.pricesTotalInfo.currency  = priceInfoWithRate.currency;
+    classInfo.pricesTotalInfo.rate      = priceInfoWithRate.rate;
 
     return classInfo;
 }
@@ -891,6 +914,12 @@ async function asyncPrivatePriceInfoWithRate(price, currency) {
         childPriceFlightCurrency:   price.childPrice,
         infantPrice:                Math.round((price.infantPrice * localRate) * 100) / 100,
         infantPriceFlightCurrency:  price.infantPrice,
+        adultPriceForPassenger:                 Math.round((price.adultPriceForPassenger * localRate) * 100) / 100,
+        adultPriceFlightCurrencyForPassenger:   price.adultPriceForPassenger,
+        childPriceForPassenger:                 Math.round((price.childPriceForPassenger * localRate) * 100) / 100,
+        childPriceFlightCurrencyForPassenger:   price.childPriceForPassenger,
+        infantPriceForPassenger:                Math.round((price.infantPriceForPassenger * localRate) * 100) / 100,
+        infantPriceFlightCurrencyForPassenger:  price.infantPriceForPassenger,
     }
 }
 

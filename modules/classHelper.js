@@ -16,7 +16,10 @@ const classHelper = {
     getClassByClassId,
     asyncRemoveOnHoldPlaces,
     checkIsPossibleSeatsCount,
-    increaseAvailableSeatsCount
+    increaseAvailableSeatsCount,
+    decreaseAvailableSeatsCount,
+    increaseClassSeatsCount,
+    decreaseClassSeatsCount
 };
 
 /**
@@ -179,6 +182,12 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
     }
 }
 
+/**
+ *
+ * @param classId
+ * @param seatsCount
+ * @returns {Promise<any>}
+ */
 async function increaseAvailableSeatsCount(classId, seatsCount) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";
@@ -206,7 +215,115 @@ async function increaseAvailableSeatsCount(classId, seatsCount) {
                 }
             })
     });
+}
 
+/**
+ *
+ * @param classId
+ * @param seatsCount
+ * @returns {Promise<any>}
+ */
+async function decreaseAvailableSeatsCount(classId, seatsCount) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        "_id": classId
+    };
+    documentInfo.updateInfo = {
+        "$inc": {
+            "availableSeats": -seatsCount
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated class available seats count"
+                    })
+                }
+                else {
+                    reject(errorTexts.classNotFound)
+                }
+            })
+    });
+}
+
+/**
+ *
+ * @param classId
+ * @param seatsCount
+ * @param availableSeatsCount
+ * @returns {Promise<any>}
+ */
+async function increaseClassSeatsCount(classId, seatsCount, availableSeatsCount) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        "_id": classId
+    };
+    documentInfo.updateInfo = {
+        "$inc": {
+            "numberOfSeats": availableSeatsCount,
+            "availableSeats": seatsCount
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated class seats count"
+                    })
+                }
+                else {
+                    reject(errorTexts.classNotFound)
+                }
+            })
+    });
+}
+
+/**
+ *
+ * @param classId
+ * @param seatsCount
+ * @param availableSeatsCount
+ * @returns {Promise<any>}
+ */
+async function decreaseClassSeatsCount(classId, seatsCount, availableSeatsCount) {
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    documentInfo.filterInfo = {
+        "_id": classId
+    };
+    documentInfo.updateInfo = {
+        "$inc": {
+            "numberOfSeats": -availableSeatsCount,
+            "availableSeats": -seatsCount
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully updated class seats count"
+                    })
+                }
+                else {
+                    reject(errorTexts.classNotFound)
+                }
+            })
+    });
 }
 
 module.exports = classHelper;

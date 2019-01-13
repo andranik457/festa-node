@@ -179,6 +179,18 @@ const text = {
         code: 400,
         status: "error",
         message: "Please check passenger age and try again"
+    },
+
+    incorrectDepartureClassId: {
+        code: 400,
+        status: "error",
+        message: "Please check departure classId and try again"
+    },
+
+    incorrectReturnClassId: {
+        code: 400,
+        status: "error",
+        message: "Please check return classId and try again"
     }
 
 };

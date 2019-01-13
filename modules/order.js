@@ -30,7 +30,7 @@ const orderInfo = {
 
         let possibleFields = await createValidateFormDependTravelType(req.body);
         if (400 === possibleFields.code) {
-            return possibleFields;
+            return Promise.reject(possibleFields);
         }
 
         let data = {
@@ -44,13 +44,12 @@ const orderInfo = {
         data = await Helper.validateData(data);
 
         // calculate passengers count | if greater 9 return error
-        let passengersCount = await calculatePassengersCount(data);
-        if (passengersCount > 9) {
-            return errorTexts.incorrectPassengersCount;
+        let passengersCountInfo = await calculatePassengersCount(data);
+        if (passengersCountInfo.passengersCount > 9) {
+            return Promise.reject(errorTexts.incorrectPassengersCount);
         }
-        else {
-            data.passengersCount = passengersCount;
-        }
+        data.passengersCount = passengersCountInfo.passengersCount;
+        data.passengersUsedSeats = passengersCountInfo.usedSeats;
 
         // check travel type
         if (data.body.travelType === travelTypes.oneWay) {
@@ -132,6 +131,13 @@ const orderInfo = {
                 type: "text",
                 minLength: 3,
                 maxLength: 2048,
+                required: true
+            },
+            paymentType: {
+                name: "Payment type (cash | online)",
+                type: "text",
+                minLength: 1,
+                maxLength: 64,
                 required: true
             }
         };
@@ -241,17 +247,87 @@ const orderInfo = {
             })
         }
 
+        ///////////////////////////////////////////////
+            // Check is agent is admin
+            // Check is exists return
+
+        if ("Admin" === agentInfo.role) {
+            for(let i in pnrInfo.departureClassInfo.prices) {
+                if (undefined !== pnrInfo.departureClassInfo.prices[i].adultPriceInfo) {
+                    pnrInfo.departureClassInfo.prices[i].adultPriceInfo.eachPrice = pnrInfo.departureClassInfo.prices[i].adultPriceInfo.eachPriceForPassenger;
+                    pnrInfo.departureClassInfo.prices[i].adultPriceInfo.eachPriceFlightCurrency = pnrInfo.departureClassInfo.prices[i].adultPriceInfo.eachPriceFlightCurrencyForPassenger;
+                    //
+                    pnrInfo.departureClassInfo.prices[i].adultPriceInfo.totalPrice = pnrInfo.departureClassInfo.prices[i].adultPriceInfo.totalPriceForPassenger;
+                    pnrInfo.departureClassInfo.prices[i].adultPriceInfo.totalPriceFlightCurrency = pnrInfo.departureClassInfo.prices[i].adultPriceInfo.totalPriceFlightCurrencyForPassenger;
+
+                    if (undefined !== pnrInfo.returnClassInfo) {
+                        pnrInfo.returnClassInfo.prices[i].adultPriceInfo.eachPrice = pnrInfo.returnClassInfo.prices[i].adultPriceInfo.eachPriceForPassenger;
+                        pnrInfo.returnClassInfo.prices[i].adultPriceInfo.eachPriceFlightCurrency = pnrInfo.returnClassInfo.prices[i].adultPriceInfo.eachPriceFlightCurrencyForPassenger;
+                        //
+                        pnrInfo.returnClassInfo.prices[i].adultPriceInfo.totalPrice = pnrInfo.returnClassInfo.prices[i].adultPriceInfo.totalPriceForPassenger;
+                        pnrInfo.returnClassInfo.prices[i].adultPriceInfo.totalPriceFlightCurrency = pnrInfo.returnClassInfo.prices[i].adultPriceInfo.totalPriceFlightCurrencyForPassenger;
+
+                    }
+                }
+
+                if (undefined !== pnrInfo.departureClassInfo.prices[i].childPriceInfo) {
+                    pnrInfo.departureClassInfo.prices[i].childPriceInfo.eachPrice = pnrInfo.departureClassInfo.prices[i].childPriceInfo.eachPriceForPassenger;
+                    pnrInfo.departureClassInfo.prices[i].childPriceInfo.eachPriceFlightCurrency = pnrInfo.departureClassInfo.prices[i].childPriceInfo.eachPriceFlightCurrencyForPassenger;
+                    //
+                    pnrInfo.departureClassInfo.prices[i].childPriceInfo.totalPrice = pnrInfo.departureClassInfo.prices[i].childPriceInfo.totalPriceForPassenger;
+                    pnrInfo.departureClassInfo.prices[i].childPriceInfo.totalPriceFlightCurrency = pnrInfo.departureClassInfo.prices[i].childPriceInfo.totalPriceFlightCurrencyForPassenger;
+
+                    if (undefined !== pnrInfo.returnClassInfo) {
+                        pnrInfo.returnClassInfo.prices[i].childPriceInfo.eachPrice = pnrInfo.returnClassInfo.prices[i].childPriceInfo.eachPriceForPassenger;
+                        pnrInfo.returnClassInfo.prices[i].childPriceInfo.eachPriceFlightCurrency = pnrInfo.returnClassInfo.prices[i].childPriceInfo.eachPriceFlightCurrencyForPassenger;
+                        //
+                        pnrInfo.returnClassInfo.prices[i].childPriceInfo.totalPrice = pnrInfo.returnClassInfo.prices[i].childPriceInfo.totalPriceForPassenger;
+                        pnrInfo.returnClassInfo.prices[i].childPriceInfo.totalPriceFlightCurrency = pnrInfo.returnClassInfo.prices[i].childPriceInfo.totalPriceFlightCurrencyForPassenger;
+
+                    }
+                }
+
+                if (undefined !== pnrInfo.departureClassInfo.prices[i].infantPrice) {
+                    pnrInfo.departureClassInfo.prices[i].infantPrice.eachPrice = pnrInfo.departureClassInfo.prices[i].infantPrice.eachPriceForPassenger;
+                    pnrInfo.departureClassInfo.prices[i].infantPrice.eachPriceFlightCurrency = pnrInfo.departureClassInfo.prices[i].infantPrice.eachPriceFlightCurrencyForPassenger;
+                    //
+                    pnrInfo.departureClassInfo.prices[i].infantPrice.totalPrice = pnrInfo.departureClassInfo.prices[i].infantPrice.totalPriceForPassenger;
+                    pnrInfo.departureClassInfo.prices[i].infantPrice.totalPriceFlightCurrency = pnrInfo.departureClassInfo.prices[i].infantPrice.totalPriceFlightCurrencyForPassenger;
+
+                    if (undefined !== pnrInfo.returnClassInfo) {
+                        pnrInfo.returnClassInfo.prices[i].infantPrice.eachPrice = pnrInfo.returnClassInfo.prices[i].infantPrice.eachPriceForPassenger;
+                        pnrInfo.returnClassInfo.prices[i].infantPrice.eachPriceFlightCurrency = pnrInfo.returnClassInfo.prices[i].infantPrice.eachPriceFlightCurrencyForPassenger;
+                        //
+                        pnrInfo.returnClassInfo.prices[i].infantPrice.totalPrice = pnrInfo.returnClassInfo.prices[i].infantPrice.totalPriceForPassenger;
+                        pnrInfo.returnClassInfo.prices[i].infantPrice.totalPriceFlightCurrency = pnrInfo.returnClassInfo.prices[i].infantPrice.totalPriceFlightCurrencyForPassenger;
+
+                    }
+                }
+            }
+        }
+
+
+        ///////////////////////////////////////////////
+
+
         let ticketFullPrice = {};
         if (undefined !== pnrInfo.returnClassInfo) {
             ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice + pnrInfo.returnClassInfo.pricesTotalInfo.totalPrice;
+            ticketFullPrice.totalForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
             ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
-            ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency
+            ticketFullPrice.totalFlightCurrencyForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+            ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency;
+            ticketFullPrice.rate = pnrInfo.departureClassInfo.pricesTotalInfo.rate
         }
         else {
             ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice;
+            ticketFullPrice.totalForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
             ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
-            ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency
+            ticketFullPrice.totalFlightCurrencyForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+            ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency;
+            ticketFullPrice.rate = pnrInfo.departureClassInfo.pricesTotalInfo.rate
         }
+
 
         // create final order
         let currentDate = Math.floor(Date.now() / 1000);
@@ -271,6 +347,7 @@ const orderInfo = {
                 city:         agentInfo.city || "",
             },
             paymentStatus:          paymentStatus,
+            paymentType:            req.body.paymentType,
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
             ticketPrice:            ticketFullPrice,
@@ -280,9 +357,9 @@ const orderInfo = {
                 email:     req.body.contactPersonEmail,
                 telephone: req.body.contactPersonTelephone,
             },
-            passengerInfo: passengerInfo,
-            updatedAt: currentDate,
-            createdAt: currentDate
+            passengerInfo:          passengerInfo,
+            updatedAt:              currentDate,
+            createdAt:              currentDate
         };
 
         // in case if ticket status is ticketing
@@ -758,6 +835,8 @@ const orderInfo = {
             pnr: req.params.pnr.toString()
         };
 
+        // validate body data
+
         // check user role
         if ("Admin" !== data.userInfo.role) {
             return Promise.reject(errorTexts.userRole)
@@ -768,21 +847,79 @@ const orderInfo = {
         if (null === orderInfo) {
             return Promise.reject(errorTexts.pnrNotFound)
         }
-        else if ("Ticketing" !== orderInfo.ticketStatus) {
+        else if (!("Ticketing" === orderInfo.ticketStatus)) {
             return Promise.reject(errorTexts.ticketingStatus)
         }
 
-        // check commissions for classes
-        let commissionAmount = 0;
-        let departureCommissionAmount = await Helper.checkCommissionAmount(orderInfo.travelInfo.departureClassInfo.prices, orderInfo.travelInfo.departureClassInfo.currency, orderInfo.travelInfo.departureClassInfo);
-        commissionAmount = commissionAmount + departureCommissionAmount;
 
-        if (undefined !== orderInfo.travelInfo.returnClassInfo) {
-            let returnCommissionAmount = await Helper.checkCommissionAmount(orderInfo.travelInfo.returnClassInfo.prices, orderInfo.travelInfo.returnClassInfo.currency, orderInfo.travelInfo.returnClassInfo);
-            commissionAmount = commissionAmount + returnCommissionAmount;
+        /////////////////////////////////////////////////////////////////////////////////////////////
+
+        // get departure available classes by flightId
+        let availableClassesForDepartureFlight = await classHelper.getClassesByFlightId(orderInfo.travelInfo.departureClassInfo.flightId);
+
+        let departurePlaceReceiverClass = null;
+        for(let i in availableClassesForDepartureFlight) {
+            if (data.body.placesDepartureClass === availableClassesForDepartureFlight[i]._id.toString()) {
+                departurePlaceReceiverClass = availableClassesForDepartureFlight[i]._id;
+                break
+            }
         }
 
-        let refundAmount = Math.round((orderInfo.ticketPrice.total - commissionAmount) * 100) / 100;
+        if (null === departurePlaceReceiverClass) {
+            return Promise.reject(errorTexts.incorrectDepartureClassId)
+        }
+
+        // get return available classes by flightId
+        let returnPlaceReceiverClass = null;
+        if (undefined !== orderInfo.travelInfo.returnFlightInfo) {
+            let availableClassesForReturnFlight = await classHelper.getClassesByFlightId(orderInfo.travelInfo.returnClassInfo.flightId);
+
+            for(let i in availableClassesForReturnFlight) {
+                if (data.body.placesReturnClass === availableClassesForReturnFlight[i]._id.toString()) {
+                    returnPlaceReceiverClass = availableClassesForReturnFlight[i]._id;
+                    break
+                }
+            }
+
+            if (null === returnPlaceReceiverClass) {
+                return Promise.reject(errorTexts.incorrectReturnClassId)
+            }
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+
+        // 1. -seats from current class
+        // 2. +seats to selected class
+        let departureSeatsRestoreInfo = await Promise.all([
+            classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats),
+            classHelper.increaseClassSeatsCount(departurePlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
+        ]);
+        // console.log(departureSeatsRestoreInfo);
+
+        if (undefined !== orderInfo.travelInfo.returnFlightInfo) {
+            let returnSeatsRestoreInfo = await Promise.all([
+                classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats),
+                classHelper.increaseClassSeatsCount(returnPlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
+            ]);
+            // console.log(returnSeatsRestoreInfo);
+        }
+
+
+        //////////////////////////////////////////////////////////////////
+        // calculate commission amount
+        let passengersInfo = JSON.parse(Buffer.from(req.body.commissionInfo, 'base64').toString('utf8'));
+
+        let totalCommission = 0;
+        for (let i in passengersInfo) {
+            totalCommission += parseFloat(passengersInfo[i].commission);
+        }
+
+        let totalCommissionWithRate = Math.round(parseFloat(totalCommission * orderInfo.ticketPrice.rate) * 100) / 100;
+
+        let agentRefundAmount = orderInfo.ticketPrice.total - totalCommissionWithRate;
+        // console.log(agentRefundAmount, totalCommissionWithRate);
+
+
 
         // 1. add commission amount to admin balance
         // 2. add refund amount to agent balance
@@ -794,7 +931,7 @@ const orderInfo = {
         let refundInfo = {};
         refundInfo.body = {
             currency: "AMD",
-            amount: refundAmount,
+            amount: agentRefundAmount,
             description: "order refund"
         };
         refundInfo.userInfo = req.userInfo;
@@ -805,7 +942,7 @@ const orderInfo = {
         let commissionInfo = {};
         commissionInfo.body = {
             currency: "AMD",
-            amount: commissionAmount,
+            amount: totalCommissionWithRate,
             description: "order refund / commission"
         };
         commissionInfo.userInfo = req.userInfo;
@@ -986,6 +1123,12 @@ async function createValidateFormDependTravelType(body) {
                 type: "number",
                 minLength: 1,
                 maxLength: 1,
+            },
+            paymentType: {
+                name: "Payment type (cash | online)",
+                type: "text",
+                minLength: 1,
+                maxLength: 64,
             }
         };
     }
@@ -1043,6 +1186,12 @@ async function createValidateFormDependTravelType(body) {
                 type: "number",
                 minLength: 1,
                 maxLength: 1,
+            },
+            paymentType: {
+                name: "Payment type (cash | online)",
+                type: "text",
+                minLength: 1,
+                maxLength: 64,
             }
         };
     }
@@ -1100,6 +1249,12 @@ async function createValidateFormDependTravelType(body) {
                 type: "number",
                 minLength: 1,
                 maxLength: 1,
+            },
+            paymentType: {
+                name: "Payment type (cash | online)",
+                type: "text",
+                minLength: 1,
+                maxLength: 64,
             }
         };
     }
@@ -1211,7 +1366,7 @@ async function oneWayTripData(data) {
 
     // check is flightId is correct mongoId
     if (!ObjectID.isValid(data.body.departureFlightId)) {
-        return errorTexts.mongId;
+        return Promise.reject(errorTexts.mongId);
     }
     else {
         data.flightId = data.body.departureFlightId;
@@ -1219,7 +1374,7 @@ async function oneWayTripData(data) {
 
     // check is classId is correct mongoId
     if (!ObjectID.isValid(data.body.departureClassId)) {
-        return errorTexts.mongId;
+        return Promise.reject(errorTexts.mongId);
     }
     else {
         data.classId = data.body.departureClassId;
@@ -1313,18 +1468,24 @@ async function twoWayTripData(data) {
  */
 async function calculatePassengersCount(data) {
     let passengersCount = 0;
+    let usedSeats = 0;
 
     if (data.body.passengerTypeAdults) {
         passengersCount += parseInt(data.body.passengerTypeAdults);
+        usedSeats += parseInt(data.body.passengerTypeAdults);
     }
     if (data.body.passengerTypeChild) {
         passengersCount += parseInt(data.body.passengerTypeChild);
+        usedSeats += parseInt(data.body.passengerTypeChild);
     }
     if (data.body.passengerTypeInfant) {
         passengersCount += parseInt(data.body.passengerTypeInfant);
     }
 
-    return passengersCount;
+    return Promise.resolve({
+        passengersCount: passengersCount,
+        usedSeats: usedSeats
+    });
 }
 
 /**
@@ -1343,7 +1504,7 @@ async function createOneWayPreOrder(data) {
     else {
         let onHolPlaces = await getOnHoldPlaceCountForClass(data.tripInfo.departureClassInfo._id);
 
-        if ((data.tripInfo.departureClassInfo.availableSeats - onHolPlaces.count) < data.passengersCount) {
+        if ((data.tripInfo.departureClassInfo.availableSeats - onHolPlaces.count) < data.passengersUsedSeats) {
             return Promise.reject({
                 code: 400,
                 status: "error",
@@ -1354,14 +1515,15 @@ async function createOneWayPreOrder(data) {
         let pnr = await Helper.getNewPnrId();
 
         // add data to on hold
-        await addPlacesToOnHold(pnr, data.tripInfo.departureClassInfo, data.passengersCount);
+        await addPlacesToOnHold(pnr, data.tripInfo.departureClassInfo, data.passengersUsedSeats);
 
         let currentTime = Math.floor(Date.now() / 1000);
 
         let preOrderInfo = {
             pnr:                    pnr,
             travelType:             data.tripInfo.travelType,
-            usedPlaces:             data.passengersCount,
+            passengersCount:        data.passengersCount,
+            usedSeats:              data.passengersUsedSeats,
             departureFlightInfo:    data.tripInfo.departureFlightInfo,
             departureClassInfo:     data.tripInfo.departureClassInfo,
             updatedAt:              currentTime,
@@ -1410,8 +1572,8 @@ async function createTwoWayPreOrder(data) {
             getOnHoldPlaceCountForClass(data.tripInfo.returnClassInfo._id)
         ]);
 
-        if (((data.tripInfo.departureClassInfo.availableSeats - departureOnHoldPlaces.count) < data.passengersCount) ||
-            ((data.tripInfo.returnClassInfo.availableSeats - returnOnHoldPlaces.count) < data.passengersCount)) {
+        if (((data.tripInfo.departureClassInfo.availableSeats - departureOnHoldPlaces.count) < data.passengersUsedSeats) ||
+            ((data.tripInfo.returnClassInfo.availableSeats - returnOnHoldPlaces.count) < data.passengersUsedSeats)) {
             return Promise.reject({
                 code: 400,
                 status: "error",
@@ -1424,15 +1586,16 @@ async function createTwoWayPreOrder(data) {
 
         // add data to on hold
         await Promise.all([
-            addPlacesToOnHold(pnr, data.tripInfo.departureClassInfo, data.passengersCount),
-            addPlacesToOnHold(pnr, data.tripInfo.returnClassInfo, data.passengersCount)
+            addPlacesToOnHold(pnr, data.tripInfo.departureClassInfo, data.passengersUsedSeats),
+            addPlacesToOnHold(pnr, data.tripInfo.returnClassInfo, data.passengersUsedSeats)
         ]);
 
         let currentTime = Math.floor(Date.now() / 1000);
         let preOrderInfo = {
             pnr:                    pnr,
             travelType:             data.tripInfo.travelType,
-            usedPlaces:             data.passengersCount,
+            passengersCount:        data.passengersCount,
+            usedSeats:              data.passengersUsedSeats,
             departureFlightInfo:    data.tripInfo.departureFlightInfo,
             departureClassInfo:     data.tripInfo.departureClassInfo,
             returnFlightInfo:       data.tripInfo.returnFlightInfo,
