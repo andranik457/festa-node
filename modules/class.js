@@ -144,27 +144,6 @@ const classInfo = {
                 minLength: 1,
                 maxLength: 5,
                 required: true
-            },
-            chargeFeeAdult: {
-                name: "Change Fee ADULT",
-                type: "float",
-                minLength: 1,
-                maxLength: 5,
-                required: true
-            },
-            chargeFeeChild: {
-                name: "Change Fee CHD",
-                type: "float",
-                minLength: 1,
-                maxLength: 5,
-                required: true
-            },
-            chargeFeeInfant: {
-                name: "Change Fee INF",
-                type: "float",
-                minLength: 1,
-                maxLength: 5,
-                required: true
             }
         };
 
@@ -487,9 +466,6 @@ function saveClass(data) {
         surchargeShortRange:        parseFloat(data.body.surchargeShortRange),
         commChd:                    parseFloat(data.body.commChd),
         commAdult:                  parseFloat(data.body.commAdult),
-        chargeFeeAdult:             parseFloat(data.body.chargeFeeAdult),
-        chargeFeeChild:             parseFloat(data.body.chargeFeeChild),
-        chargeFeeInfant:            parseFloat(data.body.chargeFeeInfant),
         updatedAt:                  currentTime,
         createdAt:                  currentTime
     };
