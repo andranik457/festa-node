@@ -1067,7 +1067,7 @@ const orderInfo = {
             editableFieldsValues: req.body
         };
 
-        data = await Helper.validateData(data);
+        await Helper.validateData(data);
 
         // get order info by :pnr
         let orderInfo = await getOrderInfo(data);
