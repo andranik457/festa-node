@@ -53,18 +53,17 @@ app.use((err, req, res, next) => {
     if (isNaN(err.status)) {
         res.status(err.code || 500);
         res.json({
-            // code: err.code || 500,
-            // message : err.code
             code: err.code || 500,
-            status: err.status,
-            message: err.message
+            status: err.status || "",
+            message: err.message || "",
+            logs: err.logs || ""
         });
     }
     else {
         res.status(err.status || 500);
         res.json({
             code: err.status || 500,
-            message : err.message
+            message : err.message || ""
         });
     }
 

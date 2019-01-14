@@ -190,11 +190,17 @@ const classInfo = {
     edit: async (req) => {
 
         const possibleFields = {
+            onlyForAdmin: {
+                name: "Only For Admin",
+                type: "text",
+                minLength: 1,
+                maxLength: 32
+            },
             numberOfSeats: {
                 name: "Number Of Seats",
                 type: "number",
                 minLength: 1,
-                maxLength: 4,
+                maxLength: 4
             },
             fareRules: {
                 name: "Fare Rules",

@@ -148,7 +148,13 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
     // get onHold seats count for this class
     let checkedClassOnHoldSeats = await getClassOnHoldSeatsCountByClassId(checkedClassId);
     let onHoldSeats = 0;
+    let onHoldPnrList = [];
     for (let i in checkedClassOnHoldSeats) {
+        onHoldPnrList.push({
+            pnr: checkedClassOnHoldSeats[i].pnr,
+            usedSeats: checkedClassOnHoldSeats[i].count
+        });
+
         onHoldSeats += checkedClassOnHoldSeats[i].count;
     }
 
@@ -156,7 +162,10 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
         return Promise.reject({
             code: 400,
             status: "error",
-            message: "Class seats count can't be less than used seats (in orders: "+ seatsInOrders +" in onHold: "+ onHoldSeats +")"
+            message: "Class seats count can't be less than used seats (in orders: "+ seatsInOrders +" in onHold: "+ onHoldSeats +")",
+            logs: {
+                onHoldInfo: onHoldPnrList
+            }
         })
     }
 
