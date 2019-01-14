@@ -138,7 +138,6 @@ const orderInfo = {
                 type: "text",
                 minLength: 1,
                 maxLength: 64,
-                required: true
             }
         };
 
@@ -313,17 +312,17 @@ const orderInfo = {
         let ticketFullPrice = {};
         if (undefined !== pnrInfo.returnClassInfo) {
             ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice + pnrInfo.returnClassInfo.pricesTotalInfo.totalPrice;
-            ticketFullPrice.totalForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
+            ticketFullPrice.totalForPassenger = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
             ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
-            ticketFullPrice.totalFlightCurrencyForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+            ticketFullPrice.totalFlightCurrencyForPassenger = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger + pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
             ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency;
             ticketFullPrice.rate = pnrInfo.departureClassInfo.pricesTotalInfo.rate
         }
         else {
             ticketFullPrice.total = pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice;
-            ticketFullPrice.totalForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
+            ticketFullPrice.totalForPassenger = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
             ticketFullPrice.totalFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
-            ticketFullPrice.totalFlightCurrencyForAdmin = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+            ticketFullPrice.totalFlightCurrencyForPassenger = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
             ticketFullPrice.currency = pnrInfo.departureClassInfo.pricesTotalInfo.currency;
             ticketFullPrice.rate = pnrInfo.departureClassInfo.pricesTotalInfo.rate
         }
