@@ -1107,7 +1107,7 @@ const orderInfo = {
 
                 let logsResult = await Helper.addToLogs(logData);
 
-                await makeOrderTicketing(orderInfo.pnr);
+                await makeOrderTicketing(data, orderInfo.pnr);
 
                 if ("success" === logsResult) {
                     return Promise.resolve({
@@ -1934,7 +1934,7 @@ async function makeOrderRefunded(pnr) {
     });
 }
 
-async function makeOrderTicketing(pnr) {
+async function makeOrderTicketing(data, pnr) {
     let documentInfo = {};
     documentInfo.collectionName = "orders";
     documentInfo.filterInfo = {
