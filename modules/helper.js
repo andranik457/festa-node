@@ -867,6 +867,10 @@ async function checkAmount(currency, amount) {
 }
 
 async function asyncGetExchangeRateByDate(currentDate) {
+    if (undefined === currentDate) {
+        currentDate = moment().format("YYYY-MM-DD");
+    }
+
     // get -1 day from selected date
     let previousDayTimestamp = moment(currentDate).format("X") - 1440;
     let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
@@ -900,6 +904,7 @@ async function asyncGetExchangeRateByDate(currentDate) {
 
 async function asyncPrivatePriceInfoWithRate(price, currency) {
     let currentDate = moment().format("YYYY-MM-DD");
+
     let exchangeRate = await asyncGetExchangeRateByDate(currentDate);
 
     let localRate = parseFloat(exchangeRate.data[currency]);
