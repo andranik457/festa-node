@@ -84,7 +84,7 @@ router.post("/refund/:pnr", async (req, res, next) => {
     }
 });
 
-router.get("/booking-to-ticketing/:pnr", async (req, res, next) => {
+router.post("/booking-to-ticketing/:pnr", async (req, res, next) => {
     try {
         res.send(await orderFunc.bookingToTicketing(req));
     }

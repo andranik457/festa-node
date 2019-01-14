@@ -346,7 +346,7 @@ const orderInfo = {
                 city:         agentInfo.city || "",
             },
             paymentStatus:          paymentStatus,
-            paymentType:            req.body.paymentType,
+            paymentType:            req.body.paymentType || "",
             travelInfo:             pnrInfo,
             ticketStatus:           req.body.ticketStatus,
             ticketPrice:            ticketFullPrice,
@@ -1047,11 +1047,27 @@ const orderInfo = {
     },
 
     async bookingToTicketing (req) {
+
+        let possibleFields = {
+            paymentType: {
+                name: "Payment type (cash | online)",
+                type: "text",
+                minLength: 1,
+                maxLength: 32,
+                required: true
+            },
+        };
+
         let data = {
             body: req.body,
             userInfo: req.userInfo,
-            pnr: req.params.pnr.toString()
+            pnr: req.params.pnr.toString(),
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body
         };
+
+        data = await Helper.validateData(data);
 
         // get order info by :pnr
         let orderInfo = await getOrderInfo(data);
@@ -1926,7 +1942,9 @@ async function makeOrderTicketing(pnr) {
     };
     documentInfo.updateInfo = {
         '$set': {
-            "ticketStatus": "Ticketing"
+            "ticketStatus": "Ticketing",
+            "paymentStatus": "Paid",
+            "paymentType": data.body.paymentType,
         }
     };
 
