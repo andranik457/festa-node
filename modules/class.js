@@ -393,6 +393,11 @@ const classInfo = {
             flightId: req.params.flightId.toString()
         };
 
+        // try to check class status (is not deleted)
+        data.classFilter = {
+            deletedAt: null
+        };
+
         return new Promise((resolve, reject) => {
             if ("Admin" !== data.userInfo.role) {
                 reject(errorTexts.userRole)
@@ -655,7 +660,11 @@ function removeClass(data) {
 function getClassesByFlightId(data) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";
-    documentInfo.filterInfo = {flightId: data.flightId};
+    documentInfo.filterInfo = {
+        $and: [
+            {flightId: data.flightId},
+            data.classFilter
+        ]};
     documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
@@ -669,6 +678,11 @@ function getClassesByFlightId(data) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<any>}
+ */
 function getClassesByClassId(data) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";
