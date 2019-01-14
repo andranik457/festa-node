@@ -267,24 +267,6 @@ const classInfo = {
                 type: "float",
                 minLength: 1,
                 maxLength: 5,
-            },
-            chargeFeeAdult: {
-                name: "Change Fee ADULT",
-                type: "float",
-                minLength: 1,
-                maxLength: 5,
-            },
-            chargeFeeChild: {
-                name: "Change Fee CHD",
-                type: "float",
-                minLength: 1,
-                maxLength: 5,
-            },
-            chargeFeeInfant: {
-                name: "Change Fee INF",
-                type: "float",
-                minLength: 1,
-                maxLength: 5,
             }
         };
 
