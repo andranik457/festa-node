@@ -732,8 +732,8 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
             eachPriceFlightCurrency:                priceInfoWithRate.adultPriceFlightCurrency,
             eachPriceFlightCurrencyForPassenger:    priceInfoWithRate.adultPriceFlightCurrencyForPassenger,
             count:                                  data.body.passengerTypeAdults,
-            totalPrice:                             Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPrice) * 100) /100,
-            totalPriceForPassenger:                 Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceForPassenger) * 100) /100,
+            totalPrice:                             Math.round(data.body.passengerTypeAdults * priceInfoWithRate.adultPrice),
+            totalPriceForPassenger:                 Math.round(data.body.passengerTypeAdults * priceInfoWithRate.adultPriceForPassenger),
             totalPriceFlightCurrency:               Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceFlightCurrency) * 100) /100,
             totalPriceFlightCurrencyForPassenger:   Math.round((data.body.passengerTypeAdults * priceInfoWithRate.adultPriceFlightCurrencyForPassenger) * 100) /100
         };
@@ -750,8 +750,8 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
             eachPriceFlightCurrency:                priceInfoWithRate.childPriceFlightCurrency,
             eachPriceFlightCurrencyForPassenger:    priceInfoWithRate.childPriceFlightCurrencyForPassenger,
             count:                                  data.body.passengerTypeChild,
-            totalPrice:                             Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPrice) * 100) /100,
-            totalPriceForPassenger:                 Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceForPassenger) * 100) /100,
+            totalPrice:                             Math.round(data.body.passengerTypeChild * priceInfoWithRate.childPrice),
+            totalPriceForPassenger:                 Math.round(data.body.passengerTypeChild * priceInfoWithRate.childPriceForPassenger),
             totalPriceFlightCurrency:               Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceFlightCurrency) * 100) /100,
             totalPriceFlightCurrencyForPassenger:   Math.round((data.body.passengerTypeChild * priceInfoWithRate.childPriceFlightCurrencyForPassenger) * 100) /100
         };
@@ -768,8 +768,8 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
             eachPriceFlightCurrency:                priceInfoWithRate.infantPriceFlightCurrency,
             eachPriceFlightCurrencyForPassenger:    priceInfoWithRate.infantPriceFlightCurrencyForPassenger,
             count:                                  data.body.passengerTypeInfant,
-            totalPrice:                             Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPrice) * 100) / 100,
-            totalPriceForPassenger:                 Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceForPassenger) * 100) / 100,
+            totalPrice:                             Math.round(data.body.passengerTypeInfant * priceInfoWithRate.infantPrice),
+            totalPriceForPassenger:                 Math.round(data.body.passengerTypeInfant * priceInfoWithRate.infantPriceForPassenger),
             totalPriceFlightCurrency:               Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceFlightCurrency) * 100) / 100,
             totalPriceFlightCurrencyForPassenger:   Math.round((data.body.passengerTypeInfant * priceInfoWithRate.infantPriceFlightCurrencyForPassenger) * 100) / 100
         };
@@ -800,8 +800,8 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
         }
 
         totalPrices.count                                   = totalPrices.count + parseInt(priceInfoTotal['count']);
-        totalPrices.totalPrice                              = Math.round((totalPrices.totalPrice + priceInfoTotal.totalPrice) * 100) / 100;
-        totalPrices.totalPriceForPassenger                  = Math.round((totalPrices.totalPriceForPassenger + priceInfoTotal.totalPriceForPassenger) * 100) / 100;
+        totalPrices.totalPrice                              = Math.round(totalPrices.totalPrice + priceInfoTotal.totalPrice);
+        totalPrices.totalPriceForPassenger                  = Math.round(totalPrices.totalPriceForPassenger + priceInfoTotal.totalPriceForPassenger);
         totalPrices.totalPriceFlightCurrency                = totalPrices.totalPriceFlightCurrency + priceInfoTotal.totalPriceFlightCurrency;
         totalPrices.totalPriceFlightCurrencyForPassenger    = totalPrices.totalPriceFlightCurrencyForPassenger + priceInfoTotal.totalPriceFlightCurrencyForPassenger
     }
@@ -814,6 +814,43 @@ async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, curre
     return classInfo;
 }
 
+/**
+ *
+ * @param price
+ * @param currency
+ * @returns {Promise<{date: string, currency: *, rate: number, adultPrice: number, adultPriceFlightCurrency: *|number, childPrice: number, childPriceFlightCurrency: *|number, infantPrice: number, infantPriceFlightCurrency: *|{eachPrice, eachPriceForPassenger: *|number, eachPriceFlightCurrency, eachPriceFlightCurrencyForPassenger: *|number, count: {name: string, type: string, minLength: number, maxLength: number}|passengerTypeInfant|{name, type, minLength, maxLength}, totalPrice: number, totalPriceForPassenger: number, totalPriceFlightCurrency: number, totalPriceFlightCurrencyForPassenger: number}|number, adultPriceForPassenger: number, adultPriceFlightCurrencyForPassenger: *|number, childPriceForPassenger: number, childPriceFlightCurrencyForPassenger: *|number, infantPriceForPassenger: number, infantPriceFlightCurrencyForPassenger: *|number}>}
+ */
+async function asyncPrivatePriceInfoWithRate(price, currency) {
+    let currentDate = moment().format("YYYY-MM-DD");
+
+    let exchangeRate = await asyncGetExchangeRateByDate(currentDate);
+
+    let localRate = parseFloat(exchangeRate.data[currency]);
+
+    return {
+        date: currentDate,
+        currency: currency,
+        rate: localRate,
+        adultPrice:                 Math.round(price.adultPrice * localRate),
+        adultPriceFlightCurrency:   price.adultPrice,
+        childPrice:                 Math.round(price.childPrice * localRate),
+        childPriceFlightCurrency:   price.childPrice,
+        infantPrice:                Math.round(price.infantPrice * localRate),
+        infantPriceFlightCurrency:  price.infantPrice,
+        adultPriceForPassenger:                 Math.round(price.adultPriceForPassenger * localRate),
+        adultPriceFlightCurrencyForPassenger:   price.adultPriceForPassenger,
+        childPriceForPassenger:                 Math.round(price.childPriceForPassenger * localRate),
+        childPriceFlightCurrencyForPassenger:   price.childPriceForPassenger,
+        infantPriceForPassenger:                Math.round(price.infantPriceForPassenger * localRate),
+        infantPriceFlightCurrencyForPassenger:  price.infantPriceForPassenger,
+    }
+}
+
+/**
+ *
+ * @param pnr
+ * @returns {Promise<any>}
+ */
 async function asyncGetPnrInfo(pnr) {
     let documentInfo = {};
     documentInfo.collectionName = "preOrders";
@@ -833,6 +870,12 @@ async function asyncGetPnrInfo(pnr) {
     });
 }
 
+/**
+ *
+ * @param currency
+ * @param amount
+ * @returns {Promise<*>}
+ */
 async function checkAmount(currency, amount) {
     const currencyInfo = await asyncGetExchangeRateByDate();
 
@@ -866,6 +909,11 @@ async function checkAmount(currency, amount) {
     return amountInfo;
 }
 
+/**
+ *
+ * @param currentDate
+ * @returns {Promise<any>}
+ */
 async function asyncGetExchangeRateByDate(currentDate) {
     if (undefined === currentDate) {
         currentDate = moment().format("YYYY-MM-DD");
@@ -900,32 +948,6 @@ async function asyncGetExchangeRateByDate(currentDate) {
             .catch(reject)
     });
 
-}
-
-async function asyncPrivatePriceInfoWithRate(price, currency) {
-    let currentDate = moment().format("YYYY-MM-DD");
-
-    let exchangeRate = await asyncGetExchangeRateByDate(currentDate);
-
-    let localRate = parseFloat(exchangeRate.data[currency]);
-
-    return {
-        date: currentDate,
-        currency: currency,
-        rate: localRate,
-        adultPrice:                 Math.round((price.adultPrice * localRate) * 100) / 100,
-        adultPriceFlightCurrency:   price.adultPrice,
-        childPrice:                 Math.round((price.childPrice * localRate) * 100) / 100,
-        childPriceFlightCurrency:   price.childPrice,
-        infantPrice:                Math.round((price.infantPrice * localRate) * 100) / 100,
-        infantPriceFlightCurrency:  price.infantPrice,
-        adultPriceForPassenger:                 Math.round((price.adultPriceForPassenger * localRate) * 100) / 100,
-        adultPriceFlightCurrencyForPassenger:   price.adultPriceForPassenger,
-        childPriceForPassenger:                 Math.round((price.childPriceForPassenger * localRate) * 100) / 100,
-        childPriceFlightCurrencyForPassenger:   price.childPriceForPassenger,
-        infantPriceForPassenger:                Math.round((price.infantPriceForPassenger * localRate) * 100) / 100,
-        infantPriceFlightCurrencyForPassenger:  price.infantPriceForPassenger,
-    }
 }
 
 async function extend(target) {

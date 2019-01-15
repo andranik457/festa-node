@@ -303,6 +303,15 @@ const orderInfo = {
                     }
                 }
             }
+
+            // for total price each direction
+            pnrInfo.departureClassInfo.pricesTotalInfo.totalPrice = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
+            pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency = pnrInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+
+            if (undefined !== pnrInfo.returnClassInfo) {
+                pnrInfo.returnClassInfo.pricesTotalInfo.totalPrice = pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
+                pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency = pnrInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+            }
         }
 
 
