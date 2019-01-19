@@ -42,7 +42,8 @@ const helper = {
     extend,
     addToLogs,
     checkCommissionAmount,
-    checkPassengerAge
+    checkPassengerAge,
+    logTransactionResult
 };
 
 /**
@@ -1025,6 +1026,26 @@ async function checkPassengerAge(passengerType, passengerDob, checkDate) {
     }
 
     return true;
+}
+
+async function logTransactionResult(logInfoArray) {
+    let currentTime = Math.floor(Date.now() / 1000);
+
+    let documentInfo = {};
+    documentInfo.collectionName = "transactionsInfo";
+    documentInfo.documentInfo = {
+        transactionInfo:    logInfoArray,
+        createdAt:          currentTime,
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.insertDocument(documentInfo)
+            .then(insertRes => {
+                insertRes.insertedCount === 1
+                    ? resolve("success")
+                    : reject(errorTexts.saveUser)
+            })
+    });
 }
 
 module.exports = helper;

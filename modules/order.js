@@ -701,137 +701,64 @@ const orderInfo = {
     },
 
     async cancelOrder (req) {
-        let currentTime = Math.floor(Date.now() / 1000);
-
-        let possibleFields = {
-            commission: {
-                name: "Commission",
-                type: "float",
-                minLength: 1,
-                maxLength: 10,
-                required: true
-            },
-        };
-
         let data = {
             body: req.body,
             userInfo: req.userInfo,
-            editableFields: possibleFields,
-            editableFieldsValues: req.body,
             pnr: req.params.pnr.toString()
         };
 
-        // validate data
-        await Helper.validateData(data);
-
-        // get order by pnr
+        // get order by pnr | also check: if user is not a admin and order is not his order return empty data
         let orderInfo = await getOrderInfo(data);
         if (null === orderInfo) {
             return Promise.reject(errorTexts.pnrNotFound)
         }
 
-        // log data
-        let logData = {
-            userId: data.userInfo.userId,
-            action: "Cancel Order",
-            oldData: orderInfo,
-            newData: "Ticket Status: Canceled"
-        };
-
         // check order status
-        if ("Ticketing" === orderInfo.ticketStatus) {
-
-            // check user role
-            if ("Admin" !== data.userInfo.role) {
-                return Promise.reject(errorTexts.userRole)
-            }
-
-            // increase balance
-            let increaseInfo = {};
-            increaseInfo.body = {
-                currency: "AMD",
-                amount: orderInfo.ticketPrice.total,
-                description: "cancel order"
-            };
-            increaseInfo.userInfo = req.userInfo;
-            increaseInfo.params = {};
-            increaseInfo.params.userId = orderInfo.agentId;
-
-            // 1. add price to user balance
-            // 2. update orderStatus
-            // 3. return seats to departure class
-            // 4. return seats to return class | if set
-            // 5. add info to log
-
-            // add price to user balance
-            let balanceUpdateInfo = await userFunc.increaseBalance(increaseInfo);
-            if (200 === balanceUpdateInfo.code) {
-                // cancel order
-                let updateOrderInfo = await makeOrderCanceled(data.pnr);
-                if (200 === updateOrderInfo.code) {
-                    // add departure seats to corresponding class
-                    let departureClassSeatsInfo = await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count);
-                    if (200 === departureClassSeatsInfo.code) {
-                        if (undefined !== orderInfo.travelInfo.returnClassInfo) {
-                            await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
-                        }
-
-                        let logsResult = await Helper.addToLogs(logData);
-                        if ("success" === logsResult) {
-                            return Promise.resolve({
-                                code: 200,
-                                status: "success",
-                                message: "You successfully canceled order"
-                            })
-                        }
-                        else {
-                            return Promise.reject(logsResult)
-                        }
-                    }
-                    else {
-                        return Promise.reject(departureClassSeatsInfo)
-                    }
-                }
-                else {
-                    return Promise.reject(updateOrderInfo)
-                }
-            }
-            else {
-                return Promise.reject(balanceUpdateInfo)
-            }
-        }
-        else if ("Booking" === orderInfo.ticketStatus) {
-            // 1. update orderStatus
-            // 2. remove onHold seats for departure class
-            // 3. remove onHold seats for return class | if set
-            // 4. add info to log
-
-            let updateOrderInfo = await makeOrderCanceled(data.pnr);
-            if (200 === updateOrderInfo.code) {
-                let onHoldSeatsInfo = await classHelper.asyncRemoveOnHoldPlaces(data.pnr)
-                if (1 === onHoldSeatsInfo.success) {
-                    let logsResult = await Helper.addToLogs(logData);
-                    if ("success" === logsResult) {
-                        return Promise.resolve({
-                            code: 200,
-                            status: "success",
-                            message: "You successfully canceled order"
-                        })
-                    }
-                    else {
-                        return Promise.reject(logsResult)
-                    }
-                }
-                else {
-                    return Promise.reject(errorTexts.onHoldSeats)
-                }
-            }
-            else {
-                return Promise.reject(updateOrderInfo)
-            }
+        if ("Booking" !== orderInfo.ticketStatus) {
+            return Promise.reject(errorTexts.bookingStatus)
         }
         else {
-            return Promise.reject(errorTexts.incorrectOrderStatus)
+            // 1. add to seats for departure class
+            // 2. add to seats for return class
+            // 3. update order status
+            // 4. add info to log (not implemented)
+
+            let logData = {
+                userId: data.userInfo.userId,
+                action: "Cancel Order",
+                oldData: orderInfo,
+                newData: "Ticket Status: Canceled"
+            };
+
+            let cancelResult = [];
+            if (undefined !== orderInfo.travelInfo.returnClassInfo._id) {
+                cancelResult = await Promise.all([
+                    makeOrderCanceled(data.pnr),
+                    classHelper.increaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, 0, orderInfo.travelInfo.usedSeats),
+                    classHelper.increaseClassSeatsCount(orderInfo.travelInfo.returnClassInfo._id, 0, orderInfo.travelInfo.usedSeats),
+                    Helper.addToLogs(logData)
+                ])
+            }
+            else {
+                cancelResult = await Promise.all([
+                    makeOrderCanceled(data.pnr),
+                    classHelper.increaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, 0, orderInfo.travelInfo.usedSeats),
+                    Helper.addToLogs(logData)
+                ])
+            }
+
+            await Helper.logTransactionResult(cancelResult)
+
+            if (200 === cancelResult[0].code) {
+                return Promise.resolve({
+                    code: 200,
+                    status: "success",
+                    message: "You successfully canceled order"
+                })
+            }
+            else {
+                return Promise.reject(errorTexts.forEnyCase)
+            }
         }
 
     },
@@ -953,9 +880,6 @@ const orderInfo = {
         let totalCommissionWithRate = Math.round(parseFloat(totalCommission * orderInfo.ticketPrice.rate) * 100) / 100;
 
         let agentRefundAmount = orderInfo.ticketPrice.total - totalCommissionWithRate;
-        // console.log(agentRefundAmount, totalCommissionWithRate);
-
-
 
         // 1. add commission amount to admin balance
         // 2. add refund amount to agent balance
@@ -968,6 +892,7 @@ const orderInfo = {
         refundInfo.body = {
             currency: "AMD",
             amount: agentRefundAmount,
+            paymentType: "Unknown type",
             description: "order refund"
         };
         refundInfo.userInfo = req.userInfo;
@@ -979,6 +904,7 @@ const orderInfo = {
         commissionInfo.body = {
             currency: "AMD",
             amount: totalCommissionWithRate,
+            paymentType: "Unknown type",
             description: "order refund / commission"
         };
         commissionInfo.userInfo = req.userInfo;

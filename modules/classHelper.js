@@ -276,8 +276,8 @@ async function increaseClassSeatsCount(classId, seatsCount, availableSeatsCount)
     };
     documentInfo.updateInfo = {
         "$inc": {
-            "numberOfSeats": availableSeatsCount,
-            "availableSeats": seatsCount
+            "numberOfSeats": seatsCount,
+            "availableSeats": availableSeatsCount
         }
     };
 
@@ -313,8 +313,8 @@ async function decreaseClassSeatsCount(classId, seatsCount, availableSeatsCount)
     };
     documentInfo.updateInfo = {
         "$inc": {
-            "numberOfSeats": -availableSeatsCount,
-            "availableSeats": -seatsCount
+            "numberOfSeats": -seatsCount,
+            "availableSeats": -availableSeatsCount
         }
     };
 

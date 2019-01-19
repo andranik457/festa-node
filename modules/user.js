@@ -575,6 +575,13 @@ const user = {
                 type: "float",
                 required: true
             },
+            paymentType: {
+                name: "Payment Type (Cash | BankTransfer | Credit Card)",
+                type: "text",
+                minLength: 3,
+                maxLength: 64,
+                required: true
+            },
             description: {
                 name: "Description",
                 type: "text",
@@ -629,6 +636,7 @@ const user = {
                 currency: updateInfo.currency,
                 rate: updateInfo.rate,
                 amount: data.body.amount,
+                paymentType: data.body.paymentType,
                 description: data.body.description,
                 createdAt: Math.floor(Date.now() / 1000)
             }
