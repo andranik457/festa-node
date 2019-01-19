@@ -306,11 +306,11 @@ const classInfo = {
 
         // get flight info by id
         data.classInfo = await classHelper.getClassByClassId(data.classId);
-        if (null === data.classInfo) {
+        if (null === data.classInfo || undefined !== data.classInfo.deletedAt) {
             return Promise.reject({
                 code: 400,
                 status: "error",
-                message: "Class not found: please check classId and try again"
+                message: "Class not found or deleted: please check classId and try again"
             })
         }
 
@@ -318,7 +318,6 @@ const classInfo = {
         await updateClass(data);
 
         return Promise.resolve(successTexts.classUpdated)
-
     },
 
     /**

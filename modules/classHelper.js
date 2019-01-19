@@ -81,7 +81,8 @@ async function getClassesByFlightId(flightId) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";
     documentInfo.filterInfo = {
-        flightId: flightId
+        flightId: flightId,
+        deletedAt: null
     };
     documentInfo.projectionInfo = {};
 
@@ -111,7 +112,7 @@ async function getClassByClassId(classId) {
     });
 }
 
-async function getClassOnHoldSeatsCountByClassId(classId) {
+async function getOnHoldDocsByClassId(classId) {
     let documentInfo = {};
     documentInfo.collectionName = "onHold";
     documentInfo.filterInfo = {
@@ -131,7 +132,7 @@ async function getClassOnHoldSeatsCountByClassId(classId) {
 async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
     newSeatsCount = parseInt(newSeatsCount);
 
-    // get flightId by classId
+    // get flightInfo by classId
     let flightInfo = await flightHelper.getFlightByClassId(checkedClassId);
     if (flightInfo.numberOfSeats < newSeatsCount) {
         return Promise.reject({
@@ -146,16 +147,16 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
     let seatsInOrders = checkedClassInfo.numberOfSeats - checkedClassInfo.availableSeats;
 
     // get onHold seats count for this class
-    let checkedClassOnHoldSeats = await getClassOnHoldSeatsCountByClassId(checkedClassId);
+    let onHoldDocs = await getOnHoldDocsByClassId(checkedClassId);
     let onHoldSeats = 0;
     let onHoldPnrList = [];
-    for (let i in checkedClassOnHoldSeats) {
+    for (let i in onHoldDocs) {
         onHoldPnrList.push({
-            pnr: checkedClassOnHoldSeats[i].pnr,
-            usedSeats: checkedClassOnHoldSeats[i].count
+            pnr: onHoldDocs[i].pnr,
+            usedSeats: onHoldDocs[i].count
         });
 
-        onHoldSeats += checkedClassOnHoldSeats[i].count;
+        onHoldSeats += onHoldDocs[i].count;
     }
 
     if ((onHoldSeats + seatsInOrders) > newSeatsCount) {
@@ -169,7 +170,7 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
         })
     }
 
-    // check other classes seats count in this flight
+    // check other classes seats count in this flight | without checked class
     let classesSeats = 0;
     let classes = await getClassesByFlightId(checkedClassInfo.flightId);
     for (let j in classes) {

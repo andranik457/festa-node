@@ -65,7 +65,10 @@ async function getFlightByFlightId(flightId) {
 function getFlightAvailableSeats(data) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";
-    documentInfo.filterInfo = {flightId: data.flightId};
+    documentInfo.filterInfo = {
+        flightId: data.flightId,
+        deletedAt: null
+    };
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
@@ -142,7 +145,8 @@ async function getFlightAvailableSeatsCountByFlightId(flightId) {
     let documentInfo = {};
     documentInfo.collectionName = "classes";
     documentInfo.filterInfo = {
-        flightId: flightId
+        flightId: flightId,
+        deletedAt: null
     };
 
     return new Promise((resolve, reject) => {
