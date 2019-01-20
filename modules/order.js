@@ -495,6 +495,11 @@ const orderInfo = {
         });
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     async editOrder (req) {
         let currentTime = Math.floor(Date.now() / 1000);
 
@@ -651,6 +656,15 @@ const orderInfo = {
                 // check passengers new data | fill with old data
                 updateInfo.passengerInfo = await fillPassengersNewDataWithOldData(orderPassengersOldInfo, passengerInfo);
             }
+
+            // log data
+            let logData = {
+                userId: data.userInfo.userId,
+                action: "Edit Order",
+                oldData: orderInfo,
+                newData: updateInfo
+            };
+            await Helper.addToLogs(logData);
 
             // update order
             let documentInfo = {};

@@ -970,8 +970,8 @@ async function addToLogs(logData) {
     documentInfo.documentInfo = {
         userId:     logData.userId,
         action:     logData.action,
-        oldData:    logData.oldData,
-        newData:    logData.newData,
+        oldData:    JSON.stringify(logData.oldData),
+        newData:    JSON.stringify(logData.newData),
         createdAt:  currentTime,
     };
 
