@@ -29,9 +29,9 @@ async function getOrdersByFlightId(flightId) {
     documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
-        mongoRequests.countDocuments(documentInfo)
-            .then(documentsCount => {
-                resolve(documentsCount)
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                resolve(documents)
             })
             .catch(reject)
     });
@@ -49,9 +49,9 @@ async function getPreOrdersByFlightId(flightId) {
     documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
-        mongoRequests.countDocuments(documentInfo)
-            .then(documentsCount => {
-                resolve(documentsCount)
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                resolve(documents)
             })
             .catch(reject)
     });

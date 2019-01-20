@@ -109,11 +109,33 @@ const mongoQueries = {
         });
     },
 
+    /**
+    *
+     */
     removeDocument : data => {
         return new Promise((resolve, reject) => {
             databaseFesta.collection(data.collectionName).remove(data.filterInfo)
                 .then(resolve, reject)
         });
+    },
+
+    bulkWrite : data => {
+        return new Promise((resolve, reject) => {
+        // console.log(data.info)
+
+            databaseFesta.collection(data.collectionName).bulkWrite(data.info)
+                .then(resolve, reject)
+        });
+
+        // databaseFesta.collection(orders).bulkWrite(
+        //     [
+        //         { updateOne :
+        //                 "filter" : { "pnr" : "F100138" },
+        //                 "update" : { $set : { 'agentInfo.companyName': "asdsadsadasd" } }
+        //
+        //         },
+        //     ]
+        // )
     },
 
     /**
