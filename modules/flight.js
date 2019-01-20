@@ -454,8 +454,8 @@ async function updateFlight(data) {
                     passengersCount: preOrdersInfo[j].passengersCount,
                 };
 
-                let departureUpdateInfo = await generatePreOrderEditDataByPnr(ordersInfo[j].pnr, 'departureFlightInfo', data.editableFieldsValues);
-                bulkWritePreOrders.push(departureUpdateInfo)
+                let departureUpdateInfo1 = await generatePreOrderEditDataByPnr(preOrdersInfo[j].pnr, 'departureFlightInfo', data.editableFieldsValues);
+                bulkWritePreOrders.push(departureUpdateInfo1)
             }
             else if (undefined !== preOrdersInfo[j].returnFlightInfo) {
                 if (data.flightId === preOrdersInfo[j].returnFlightInfo._id.toString()) {
@@ -463,8 +463,8 @@ async function updateFlight(data) {
                         passengersCount: preOrdersInfo[j].passengersCount,
                     };
 
-                    let departureUpdateInfo = await generatePreOrderEditDataByPnr(ordersInfo[j].pnr, 'returnFlightInfo', data.editableFieldsValues);
-                    bulkWritePreOrders.push(departureUpdateInfo)
+                    let returnUpdateInfo1 = await generatePreOrderEditDataByPnr(preOrdersInfo[j].pnr, 'returnFlightInfo', data.editableFieldsValues);
+                    bulkWritePreOrders.push(returnUpdateInfo1)
                 }
             }
         }
@@ -717,6 +717,9 @@ async function bulkUpdatePreOrders(bulkWritePreOrders) {
     documentInfo.info = bulkWritePreOrders;
     return new Promise((resolve, reject) => {
         mongoRequests.bulkWrite(documentInfo)
+            .then(asd => {
+                console.log(asd);
+            })
             .then(resolve, reject)
     });
 }
