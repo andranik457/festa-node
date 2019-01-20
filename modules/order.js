@@ -18,6 +18,7 @@ const classHelper   = require("../modules/classHelper");
 const orderHelper   = require("../modules/orderHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
+const uuidv4        = require('uuid/v4');
 const travelTypes = {
     oneWay: "One Way",
     roundTrip: "Round Trip",
@@ -26,6 +27,11 @@ const travelTypes = {
 
 const orderInfo = {
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     async preOrder (req) {
 
         let possibleFields = await createValidateFormDependTravelType(req.body);
@@ -74,6 +80,11 @@ const orderInfo = {
 
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     async order (req) {
 
         // validate data
@@ -219,6 +230,7 @@ const orderInfo = {
                     }
                 }
 
+                passengersInfo[i].id = uuidv4();
                 passengersInfo[i].ticketNumber = ticketNumber;
                 passengerInfo.push(passengersInfo[i]);
             }
@@ -420,6 +432,11 @@ const orderInfo = {
         }
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<{code: number, status: string, message: string, data: any}>}
+     */
     async getOrders (req) {
         let possibleFields = {
             ticketStatus: {
@@ -456,6 +473,11 @@ const orderInfo = {
         });
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<{code: number, status: string, message: string, data: any}>}
+     */
     async getOrderByPnr (req) {
         let data = {
             body: req.body,
@@ -474,6 +496,7 @@ const orderInfo = {
     },
 
     async editOrder (req) {
+        let currentTime = Math.floor(Date.now() / 1000);
 
         let possibleFields = {};
 
@@ -490,8 +513,18 @@ const orderInfo = {
             return Promise.reject(errorTexts.pnrNotFound)
         }
 
-        // check user role
-        if ("Admin" === data.userInfo.role) {
+        // check order status
+        if ("Booking" !== orderInfo.ticketStatus && "Ticketing" !== orderInfo.ticketStatus) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Incorrect ticket status: need to be Booking | Ticketing"
+            })
+        }
+        else if ("Ticketing" === orderInfo.ticketStatus && "Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
+        else {
             possibleFields = {
                 comment: {
                     name: "Comment",
@@ -521,7 +554,7 @@ const orderInfo = {
                     name: "Passengers Info",
                     type: "text",
                     minLength: 3,
-                    maxLength: 2048,
+                    maxLength: 4096,
                 }
             };
             data.possibleForm = possibleFields;
@@ -534,8 +567,6 @@ const orderInfo = {
 
             // validate main info
             await Helper.validateData(data);
-
-            let currentTime = Math.floor(Date.now() / 1000);
 
             let updateInfo = {};
             updateInfo.updatedAt = currentTime;
@@ -550,133 +581,86 @@ const orderInfo = {
                 }
                 else if ("contactPersonTelephone" === i) {
                     updateInfo['contactPersonInfo.telephone'] = data.editableFieldsValues[i]
+                }
+                else if ("comment" === i) {
+                    updateInfo['comment'] = data.editableFieldsValues[i]
                 }
             }
 
             // check passengers info
-            if (_.has(data.body, "passengersInfo")) {
+            if (undefined !== data.body.passengersInfo) {
                 let passengersInfo = JSON.parse(Buffer.from(data.body.passengersInfo, 'base64').toString('utf8'));
 
+                let orderPassengersOldInfo = orderInfo.passengerInfo;
                 let passengerInfo = [];
                 for (let i in passengersInfo) {
-                    let passengerValidateInfo = await createValidateFormDependPassengerType(passengersInfo[i]);
-
-                    if (_.has(passengerValidateInfo, "code")) {
-                        return passengerValidateInfo;
+                    if (undefined === passengersInfo[i].id) {
+                        return Promise.reject({
+                            code: 400,
+                            status: "error",
+                            message: "Please check passengerId and try again"
+                        })
                     }
                     else {
-                        possibleFields = passengerValidateInfo;
-                        possibleFields.ticketNumber = {
-                            name: "Ticket Number",
-                            type: "text",
-                            minLength: 12,
-                            maxLength: 12,
-                            required: true
-                        };
+                        let checkedInfo = await checkPassengerIdInExistedPassengersInfo(orderPassengersOldInfo, passengersInfo[i]);
+                        orderPassengersOldInfo = checkedInfo.passengersArray;
+                        let currentPassengerInfo = checkedInfo.oldData;
 
-                        let data = {
-                            body: passengersInfo[i],
-                            userInfo: req.userInfo,
-                            possibleForm: possibleFields,
-                            editableFields: possibleFields,
-                            editableFieldsValues: passengersInfo[i]
-                        };
+                        if (!orderPassengersOldInfo) {
+                            return Promise.reject({
+                                code: 400,
+                                status: "error",
+                                message: "Incorrect passengerId and/or passengerType: Please check them and try again"
+                            })
+                        }
+                        else {
+                            let passengerValidateInfo = await createValidateFormDependPassengerTypeForEdit(passengersInfo[i]);
 
-                        // validate passenger data
-                        await Helper.validateData(data);
+                            if (undefined !== passengerValidateInfo.code) {
+                                return Promise.reject(passengerValidateInfo)
+                            }
+                            else {
+                                let data = {
+                                    body: passengersInfo[i],
+                                    userInfo: req.userInfo,
+                                    possibleForm: passengerValidateInfo,
+                                    editableFields: passengerValidateInfo,
+                                    editableFieldsValues: passengersInfo[i]
+                                };
 
-                        passengerInfo.push(passengersInfo[i]);
+                                // validate passenger data
+                                await Helper.validateData(data);
+
+                                passengerInfo.push({
+                                    id:             currentPassengerInfo.id,
+                                    ticketNumber:   currentPassengerInfo.ticketNumber,
+                                    dob:            currentPassengerInfo.dob,
+                                    passengerType:  currentPassengerInfo.passengerType,
+                                    name:           passengersInfo[i].name              || currentPassengerInfo.name,
+                                    surname:        passengersInfo[i].surname           || currentPassengerInfo.surname,
+                                    gender:         passengersInfo[i].gender            || currentPassengerInfo.gender,
+                                    passportNumber: passengersInfo[i].passportNumber    || currentPassengerInfo.passportNumber
+                                });
+                            }
+                        }
+
                     }
+
                 }
 
-                updateInfo.passengerInfo = passengerInfo
+                // check passengers new data | fill with old data
+                updateInfo.passengerInfo = await fillPassengersNewDataWithOldData(orderPassengersOldInfo, passengerInfo);
             }
-
 
             // update order
             let documentInfo = {};
             documentInfo.collectionName = "orders";
-            documentInfo.filterInfo = {pnr: data.pnr};
-            documentInfo.updateInfo = {'$set': updateInfo};
-
-            return new Promise((resolve, reject) => {
-                mongoRequests.updateDocument(documentInfo)
-                    .then(updateRes => {
-                        if (updateRes.lastErrorObject.n > 0) {
-                            resolve({
-                                code: 200,
-                                status: "success",
-                                message: "You successfully updated order info"
-                            })
-                        }
-                        else {
-                            reject(errorTexts.pnrNotFound)
-                        }
-                    })
-            });
-
-        }
-        else  if ("user" === data.userInfo.role) {
-            possibleFields = {
-                comment: {
-                    name: "Comment",
-                    type: "text",
-                    minLength: 1,
-                    maxLength: 128,
-                },
-                contactPersonFullName: {
-                    name: "Contact Person Full name",
-                    type: "text",
-                    minLength: 3,
-                    maxLength: 128,
-                },
-                contactPersonEmail: {
-                    name: "Contact Person email",
-                    type: "email",
-                    minLength: 3,
-                    maxLength: 64,
-                },
-                contactPersonTelephone: {
-                    name: "Contact Person telephone",
-                    type: "telephone",
-                    minLength: 3,
-                    maxLength: 64,
-                }
+            documentInfo.filterInfo = {
+                pnr: data.pnr
             };
-            data.possibleForm = possibleFields;
-
-            // get editable fields
-            await Helper.getEditableFields(data);
-
-            // get editable fields values
-            await Helper.getEditableFieldsValues(data);
-
-            // validate main info
-            await Helper.validateData(data);
-
-            let currentTime = Math.floor(Date.now() / 1000);
-
-            let updateInfo = {};
-            updateInfo.updatedAt = currentTime;
-
-            // generate update object
-            for (let i in data.editableFieldsValues) {
-                if ("contactPersonFullName" === i) {
-                    updateInfo['contactPersonInfo.fullName'] = data.editableFieldsValues[i]
-                }
-                else if ("contactPersonEmail" === i) {
-                    updateInfo['contactPersonInfo.email'] = data.editableFieldsValues[i]
-                }
-                else if ("contactPersonTelephone" === i) {
-                    updateInfo['contactPersonInfo.telephone'] = data.editableFieldsValues[i]
-                }
-            }
-
-            // update order
-            let documentInfo = {};
-            documentInfo.collectionName = "orders";
-            documentInfo.filterInfo = {pnr: data.pnr};
-            documentInfo.updateInfo = {'$set': updateInfo};
+            documentInfo.updateInfo = {
+                '$set': updateInfo
+            };
 
             return new Promise((resolve, reject) => {
                 mongoRequests.updateDocument(documentInfo)
@@ -693,13 +677,15 @@ const orderInfo = {
                         }
                     })
             });
-        }
-        else {
-            return Promise.reject(errorTexts.userRole)
-        }
 
+        }
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     async cancelOrder (req) {
         let data = {
             body: req.body,
@@ -763,6 +749,11 @@ const orderInfo = {
 
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     async refundOrder (req) {
 
         let possibleFields = {
@@ -981,6 +972,11 @@ const orderInfo = {
         }
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
     async bookingToTicketing (req) {
 
         let possibleFields = {
@@ -1336,6 +1332,75 @@ async function createValidateFormDependPassengerType(body) {
     }
 }
 
+async function createValidateFormDependPassengerTypeForEdit (passengerInfo) {
+    if (undefined === passengerInfo.passengerType) {
+        return errorTexts.passengerType
+    }
+    else if (passengerInfo.passengerType === "Adults") {
+        return {
+            name: {
+                name: "Name",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+            },
+            surname: {
+                name: "Surname",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+            },
+            gender: {
+                name: "Gender",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+            },
+            passportNumber: {
+                name: "Passport number",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+            }
+        };
+    }
+    else if ((passengerInfo.passengerType === "Child") || (passengerInfo.passengerType === "Infant")) {
+        return {
+            name: {
+                name: "Name",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+            },
+            surname: {
+                name: "Surname",
+                type: "text",
+                format: "latin",
+                minLength: 3,
+                maxLength: 64,
+            },
+            gender: {
+                name: "Gender",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+            },
+            passportNumber: {
+                name: "Passport number",
+                type: "text",
+                minLength: 3,
+                maxLength: 18,
+            }
+        };
+    }
+    else {
+        return errorTexts.passengerType;
+    }
+}
+
 /**
  *
  * @param data
@@ -1646,6 +1711,7 @@ async function getOnHoldPlaceCountForClass(classId) {
 
 /**
  *
+ * @param pnr
  * @param classInfo
  * @param placesCount
  * @returns {Promise<any>}
@@ -1840,6 +1906,11 @@ async function makeOrderCanceled(pnr) {
     });
 }
 
+/**
+ *
+ * @param pnr
+ * @returns {Promise<any>}
+ */
 async function makeOrderRefunded(pnr) {
     let documentInfo = {};
     documentInfo.collectionName = "orders";
@@ -1869,6 +1940,12 @@ async function makeOrderRefunded(pnr) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @param pnr
+ * @returns {Promise<any>}
+ */
 async function makeOrderTicketing(data, pnr) {
     let documentInfo = {};
     documentInfo.collectionName = "orders";
@@ -1898,4 +1975,28 @@ async function makeOrderTicketing(data, pnr) {
                 }
             })
     });
+}
+
+async function checkPassengerIdInExistedPassengersInfo(passengersInfo, newPassengerInfo) {
+    for (let i in passengersInfo) {
+        if (passengersInfo[i].id === newPassengerInfo.id && passengersInfo[i].passengerType === newPassengerInfo.passengerType) {
+            let oldData = passengersInfo[i];
+
+            // remove old data from main array
+            passengersInfo.splice(i, 1);
+
+            return {
+                passengersArray: passengersInfo,
+                oldData: oldData
+            }
+        }
+    }
+
+    return false
+}
+
+async function fillPassengersNewDataWithOldData(oldData, newData) {
+    // console.log(oldData, '--------------------------', newData);
+
+    return oldData.concat(newData)
 }
