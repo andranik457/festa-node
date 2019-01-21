@@ -717,9 +717,6 @@ async function bulkUpdatePreOrders(bulkWritePreOrders) {
     documentInfo.info = bulkWritePreOrders;
     return new Promise((resolve, reject) => {
         mongoRequests.bulkWrite(documentInfo)
-            .then(asd => {
-                console.log(asd);
-            })
             .then(resolve, reject)
     });
 }

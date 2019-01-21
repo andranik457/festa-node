@@ -502,7 +502,8 @@ async function checkAvailableClasses(data, flightsIds) {
                 {onlyForAdmin: onlyForAdmin},
                 {flightId: {$in: flightsIds}},
                 {travelType: travelTypes.oneWay},
-                {availableSeats: {$gte: needSeatsCount}}
+                {availableSeats: {$gte: needSeatsCount}},
+                {deletedAt: null}
             ]
         };
     }
@@ -512,7 +513,8 @@ async function checkAvailableClasses(data, flightsIds) {
                 {onlyForAdmin: onlyForAdmin},
                 {flightId: {$in: flightsIds}},
                 {travelType: {$ne: travelTypes.oneWay}},
-                {availableSeats: {$gte: needSeatsCount}}
+                {availableSeats: {$gte: needSeatsCount}},
+                {deletedAt: null}
             ]
         };
     }
