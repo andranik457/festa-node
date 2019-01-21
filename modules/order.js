@@ -933,28 +933,29 @@ const orderInfo = {
                 // cancel order
                 let updateOrderInfo = await makeOrderRefunded(orderInfo.pnr);
                 if (200 === updateOrderInfo.code) {
-                    // add departure seats to corresponding class
-                    let departureClassSeatsInfo = await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count);
-                    if (200 === departureClassSeatsInfo.code) {
-                        if (undefined !== orderInfo.travelInfo.returnClassInfo) {
-                            await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
-                        }
 
-                        //////////////////////////////
+
+                    // add departure seats to corresponding class
+                    // let departureClassSeatsInfo = await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count);
+                    // if (200 === departureClassSeatsInfo.code) {
+                    //     if (undefined !== orderInfo.travelInfo.returnClassInfo) {
+                    //         await classHelper.increaseAvailableSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
+                    //     }
+
+                        ////////////////////////////// // add departure seats to corresponding class
                         // 1. -seats from current class
                         // 2. +seats to selected class
                         let departureSeatsRestoreInfo = await Promise.all([
                             classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.usedSeats, 0),
                             classHelper.increaseClassSeatsCount(departurePlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
                         ]);
-                        // console.log(departureSeatsRestoreInfo);
 
+                        ////////////////////////////// // add return seats to corresponding class
                         if (undefined !== orderInfo.travelInfo.returnFlightInfo) {
                             let returnSeatsRestoreInfo = await Promise.all([
                                 classHelper.decreaseClassSeatsCount(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.usedSeats, 0),
                                 classHelper.increaseClassSeatsCount(returnPlaceReceiverClass, orderInfo.travelInfo.usedSeats, orderInfo.travelInfo.usedSeats)
                             ]);
-                            // console.log(returnSeatsRestoreInfo);
                         }
                         //////////////////////////////
 
@@ -971,7 +972,9 @@ const orderInfo = {
                         else {
                             return Promise.reject(logsResult)
                         }
-                    }
+                    // }
+
+
                 }
                 else {
                     return Promise.reject(updateOrderInfo)
