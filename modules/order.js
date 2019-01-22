@@ -731,7 +731,7 @@ const orderInfo = {
             };
 
             let cancelResult = [];
-            if (undefined !== orderInfo.travelInfo.returnClassInfo._id) {
+            if (undefined !== orderInfo.travelInfo.returnClassInfo) {
                 cancelResult = await Promise.all([
                     makeOrderCanceled(data.pnr),
                     classHelper.increaseClassSeatsCount(orderInfo.travelInfo.departureClassInfo._id, 0, orderInfo.travelInfo.usedSeats),
