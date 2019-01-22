@@ -16,6 +16,7 @@ const classHelper = {
     getClassByClassId,
     asyncRemoveOnHoldPlaces,
     checkIsPossibleSeatsCount,
+    getOnHoldSeatsCountByClassId,
     increaseAvailableSeatsCount,
     decreaseAvailableSeatsCount,
     increaseClassSeatsCount,
@@ -332,6 +333,26 @@ async function decreaseClassSeatsCount(classId, seatsCount, availableSeatsCount)
                 else {
                     reject(errorTexts.classNotFound)
                 }
+            })
+    });
+}
+
+async function getOnHoldSeatsCountByClassId(classId) {
+    let documentInfo = {};
+    documentInfo.collectionName = "onHold";
+    documentInfo.filterInfo = {
+        "classId": classId.toString()
+    };
+
+    let onHoldSeatsCount = 0;
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                for (let i in documents) {
+                    onHoldSeatsCount += documents[i].count
+                }
+
+                resolve(onHoldSeatsCount)
             })
     });
 }

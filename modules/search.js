@@ -9,6 +9,7 @@ const ObjectID      = require('mongodb').ObjectID;
 const mongoRequests = require("../dbQueries/mongoRequests");
 const Helper        = require("../modules/helper");
 const FlightHelper  = require("../modules/flightHelper");
+const classHelper   = require("../modules/classHelper");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const travelTypes = {
@@ -524,19 +525,25 @@ async function checkAvailableClasses(data, flightsIds) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
             .then(async docInfo => {
-
                 let classesInfo = {};
                 for (let i in docInfo) {
                     let classInfo = docInfo[i];
 
-                    if (!_.has(classesInfo, classInfo['flightId'])) {
-                        classesInfo[classInfo['flightId']] = [];
+                    // get on hold seats info by classId
+                    let classOnHoldSeatsCount = await classHelper.getOnHoldSeatsCountByClassId(classInfo['_id']);
+
+                    if (classInfo.availableSeats - classOnHoldSeatsCount >= needSeatsCount) {
+                        classInfo.availableSeats = classInfo.availableSeats - classOnHoldSeatsCount;
+
+                        if (!_.has(classesInfo, classInfo['flightId'])) {
+                            classesInfo[classInfo['flightId']] = [];
+                        }
+
+                        // calculate class price
+                        let classFullInfo = await Helper.asyncGetClassPrice(classInfo, data, classInfo.currency);
+
+                        classesInfo[classFullInfo['flightId']].push(classFullInfo)
                     }
-
-                    // calculate class price
-                    let classFullInfo = await Helper.asyncGetClassPrice(classInfo, data, classInfo.currency);
-
-                    classesInfo[classFullInfo['flightId']].push(classFullInfo)
                 }
 
                 resolve(classesInfo)
