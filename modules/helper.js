@@ -920,13 +920,9 @@ async function asyncGetExchangeRateByDate(currentDate) {
         currentDate = moment().format("YYYY-MM-DD");
     }
 
-    // get -1 day from selected date
-    let previousDayTimestamp = moment(currentDate).format("X") - 1440;
-    let date = moment.unix(previousDayTimestamp).format("YYYY-MM-DD");
-
     let documentInfo = {};
     documentInfo.collectionName = "exchangeRate";
-    documentInfo.filterInfo = {"date" : date};
+    documentInfo.filterInfo = {"date" : currentDate};
     documentInfo.projectionInfo = {};
 
     return new Promise((resolve, reject) => {
@@ -934,7 +930,7 @@ async function asyncGetExchangeRateByDate(currentDate) {
             .then(docInfo => {
                 if (docInfo !== null) {
                     resolve({
-                        date: date,
+                        date: currentDate,
                         data: docInfo.festaRate
                     });
                 }
