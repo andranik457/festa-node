@@ -80,6 +80,26 @@ const orderInfo = {
 
     },
 
+    async cancelPreOrder (req) {
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            pnr: req.params.pnr.toString()
+        };
+
+        // remove preOrder | onHold seats
+        let ad = await Promise.all([
+            removePreOrders(data.pnr),
+            removeOnHolSeats(data.pnr)
+        ]);
+
+        return Promise.resolve({
+            code: 200,
+            status: "success",
+            message: "You successfully canceled order"
+        })
+    },
+
     /**
      *
      * @param req
@@ -2016,4 +2036,30 @@ async function fillPassengersNewDataWithOldData(oldData, newData) {
     // console.log(oldData, '--------------------------', newData);
 
     return oldData.concat(newData)
+}
+
+async function removePreOrders(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "preOrders";
+    documentInfo.filterInfo = {
+        'pnr': pnr
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.removeDocument(documentInfo)
+            .then(resolve,reject)
+    });
+}
+
+async function removeOnHolSeats(pnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "onHold";
+    documentInfo.filterInfo = {
+        'pnr': pnr
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.removeDocument(documentInfo)
+            .then(resolve,reject)
+    });
 }

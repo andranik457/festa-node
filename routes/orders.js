@@ -74,6 +74,16 @@ router.post("/cancel/:pnr", async (req, res, next) => {
     }
 });
 
+router.post("/cancel-pre-order/:pnr", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.cancelPreOrder(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 router.post("/refund/:pnr", async (req, res, next) => {
     try {
         res.send(await orderFunc.refundOrder(req));
