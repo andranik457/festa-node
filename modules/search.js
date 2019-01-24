@@ -284,12 +284,12 @@ async function mainSearchResult(data) {
             searchResult['departure'].push(availableFlight)
         }
 
-        // // for not possible classes
-        // if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
-        //     availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
-        //
-        //     searchResult['departure'].push(availableFlight)
-        // }
+        // for not possible classes
+        if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
+            availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
+
+            searchResult['departure'].push(availableFlight)
+        }
     });
 
     // append return classes
@@ -300,12 +300,12 @@ async function mainSearchResult(data) {
             searchResult['return'].push(availableFlight)
         }
 
-        // // for not possible classes
-        // if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
-        //     availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
-        //
-        //     searchResult['departure'].push(availableFlight)
-        // }
+        // for not possible classes
+        if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
+            availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
+
+            searchResult['return'].push(availableFlight)
+        }
     });
 
     data.departureInfo = searchResult.departure;
