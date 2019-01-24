@@ -17,8 +17,6 @@ const classHelper = {
     asyncRemoveOnHoldPlaces,
     checkIsPossibleSeatsCount,
     getOnHoldSeatsCountByClassId,
-    increaseAvailableSeatsCount,
-    decreaseAvailableSeatsCount,
     increaseClassSeatsCount,
     decreaseClassSeatsCount
 };
@@ -191,76 +189,6 @@ async function checkIsPossibleSeatsCount(checkedClassId, newSeatsCount) {
     return {
         userSeatsInOrders: seatsInOrders
     }
-}
-
-/**
- *
- * @param classId
- * @param seatsCount
- * @returns {Promise<any>}
- */
-async function increaseAvailableSeatsCount(classId, seatsCount) {
-    let documentInfo = {};
-    documentInfo.collectionName = "classes";
-    documentInfo.filterInfo = {
-        "_id": classId
-    };
-    documentInfo.updateInfo = {
-        "$inc": {
-            "availableSeats": seatsCount
-        }
-    };
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.updateDocument(documentInfo)
-            .then(updateRes => {
-                if (updateRes.lastErrorObject.n > 0) {
-                    resolve({
-                        code: 200,
-                        status: "success",
-                        message: "You successfully updated class available seats count"
-                    })
-                }
-                else {
-                    reject(errorTexts.classNotFound)
-                }
-            })
-    });
-}
-
-/**
- *
- * @param classId
- * @param seatsCount
- * @returns {Promise<any>}
- */
-async function decreaseAvailableSeatsCount(classId, seatsCount) {
-    let documentInfo = {};
-    documentInfo.collectionName = "classes";
-    documentInfo.filterInfo = {
-        "_id": classId
-    };
-    documentInfo.updateInfo = {
-        "$inc": {
-            "availableSeats": -seatsCount
-        }
-    };
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.updateDocument(documentInfo)
-            .then(updateRes => {
-                if (updateRes.lastErrorObject.n > 0) {
-                    resolve({
-                        code: 200,
-                        status: "success",
-                        message: "You successfully updated class available seats count"
-                    })
-                }
-                else {
-                    reject(errorTexts.classNotFound)
-                }
-            })
-    });
 }
 
 /**

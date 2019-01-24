@@ -1062,40 +1062,29 @@ const orderInfo = {
         // use agent balance
         let balanceUpdateInfo = await userHelper.asyncUseUserBalance(orderInfo.agentId, orderInfo.ticketPrice.total);
         if (1 === balanceUpdateInfo.success) {
-            // use seats
-            let useDepartureSeats = await classHelper.asyncUsePlaces(orderInfo.travelInfo.departureClassInfo._id, orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count)
-            if (1 === useDepartureSeats.success) {
-                // use seats if isset return class
-                if (undefined !== orderInfo.travelInfo.returnClassInfo) {
-                    await classHelper.asyncUsePlaces(orderInfo.travelInfo.returnClassInfo._id, orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count)
-                }
 
-                // remove from onHold
-                await classHelper.asyncRemoveOnHoldPlaces(orderInfo.pnr);
+            let bookingToTicketingResult = await Promise.all([
+                makeOrderTicketing(data, orderInfo.pnr),
+                Helper.addToLogs(logData)
+            ]);
 
-                let logsResult = await Helper.addToLogs(logData);
+            // add to transaction log
+            await Helper.logTransactionResult(bookingToTicketingResult)
 
-                await makeOrderTicketing(data, orderInfo.pnr);
-
-                if ("success" === logsResult) {
-                    return Promise.resolve({
-                        code: 200,
-                        status: "success",
-                        message: "You successfully change Booking to Ticketing"
-                    })
-                }
-                else {
-                    return Promise.reject(logsResult)
-                }
+            if (undefined !== bookingToTicketingResult[0].code && 200 === bookingToTicketingResult[0].code) {
+                return Promise.resolve({
+                    code: 200,
+                    status: "success",
+                    message: "You successfully change Booking to Ticketing"
+                })
+            }
+            else {
+                return Promise.reject(bookingToTicketingResult[0])
             }
         }
         else {
             return Promise.reject(errorTexts.enoughMoney)
         }
-
-        // let agentInfo = await userHelper.asyncGetUserInfoById(orderInfo.agentId);
-        // console.log(agentInfo);
-
     }
 
 };
