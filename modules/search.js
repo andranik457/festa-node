@@ -550,12 +550,10 @@ async function checkAvailableClasses(data, flightsIds) {
                     let classInfo = docInfo[i];
 
                     // get on hold seats info by classId
-                    // let classOnHoldSeatsCount = await classHelper.getOnHoldSeatsCountByClassId(classInfo['_id']);
+                    let classOnHoldSeatsCount = await classHelper.getOnHoldSeatsCountByClassId(classInfo['_id']);
 
-                    // if (classInfo.availableSeats - classOnHoldSeatsCount >= needSeatsCount) {
-                    //     classInfo.availableSeats = classInfo.availableSeats - classOnHoldSeatsCount;
-                    if (classInfo.availableSeats >= needSeatsCount) {
-                        classInfo.availableSeats = classInfo.availableSeats;
+                    if (classInfo.availableSeats - classOnHoldSeatsCount >= needSeatsCount) {
+                        classInfo.availableSeats = classInfo.availableSeats - classOnHoldSeatsCount;
 
                         if (!_.has(classesInfo, classInfo['flightId'])) {
                             classesInfo[classInfo['flightId']] = [];
