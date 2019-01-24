@@ -11,7 +11,7 @@ const config = {
     mode : "production",
 
     local: {
-        httpUrl: "local-festa.smartsoft.am",
+        httpUrl: "local-festa.smartsoft.am:8080",
 
         port: parseInt(process.env.PORT) || 3015,
 
@@ -33,7 +33,7 @@ const config = {
     },
 
     production: {
-        httpUrl: "festa.smartsoft.am",
+        httpUrl: "festa.smartsoft.am:8080",
 
         port: parseInt(process.env.PORT) || 3015,
 
