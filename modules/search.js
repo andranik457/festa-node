@@ -255,6 +255,8 @@ async function mainSearchResult(data) {
     }
     // get availableClasses for selected Flights
     let departureFlightsClasses = await checkAvailableClasses(data, availableDepartureFlightsIds);
+    // get not availableClasses for selected Flights
+    let departureFlightsNotPossibleClasses = await checkNotPossibleClasses(data, availableDepartureFlightsIds);
 
     // get return flights ID's
     let availableReturnFlightsIds = [];
@@ -265,6 +267,8 @@ async function mainSearchResult(data) {
     }
     // get availableClasses for selected Flights
     let returnFlightsClasses = await checkAvailableClasses(data, availableReturnFlightsIds);
+    // get not availableClasses for selected Flights
+    let returnFlightsNotPossibleClasses = await checkNotPossibleClasses(data, availableReturnFlightsIds);
 
     let searchResult = [];
     searchResult['departure'] = [];
@@ -277,6 +281,13 @@ async function mainSearchResult(data) {
 
             searchResult['departure'].push(availableFlight)
         }
+
+        // for not possible classes
+        if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
+            availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
+
+            searchResult['departure'].push(availableFlight)
+        }
     });
 
     // append return classes
@@ -285,6 +296,13 @@ async function mainSearchResult(data) {
             availableFlight['classes'] = returnFlightsClasses[availableFlight['_id']];
 
             searchResult['return'].push(availableFlight)
+        }
+
+        // for not possible classes
+        if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
+            availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
+
+            searchResult['departure'].push(availableFlight)
         }
     });
 
@@ -547,6 +565,90 @@ async function checkAvailableClasses(data, flightsIds) {
                 }
 
                 resolve(classesInfo)
+            })
+            .catch(reject)
+    });
+}
+
+/**
+ *
+ * @param data
+ * @param flightsIds
+ * @returns {Promise<any>}
+ */
+async function checkNotPossibleClasses(data, flightsIds) {
+    let needSeatsCount = 0;
+    if (data.body.passengerTypeAdults) {
+        needSeatsCount += parseInt(data.body.passengerTypeAdults);
+    }
+    if (data.body.passengerTypeChild) {
+        needSeatsCount += parseInt(data.body.passengerTypeChild);
+    }
+    if (data.body.passengerTypeInfant) {
+        needSeatsCount += parseInt(data.body.passengerTypeInfant);
+    }
+
+    // check user role
+    let onlyForAdmin = {$ne: true};
+    if ("Admin" === data.userInfo.role) {
+        onlyForAdmin = {$exists: true};
+    }
+
+    let documentInfo = {};
+    documentInfo.collectionName = "classes";
+    // check travel type
+    if (travelTypes.oneWay === data.body.travelType) {
+        documentInfo.filterInfo = {
+            $and: [
+                {onlyForAdmin: onlyForAdmin},
+                {flightId: {$in: flightsIds}},
+                {travelType: travelTypes.oneWay},
+                {availableSeats: {$lt: needSeatsCount}},
+                {deletedAt: null}
+            ]
+        };
+    }
+    else {
+        documentInfo.filterInfo = {
+            $and: [
+                {onlyForAdmin: onlyForAdmin},
+                {flightId: {$in: flightsIds}},
+                {travelType: {$ne: travelTypes.oneWay}},
+                {availableSeats: {$lt: needSeatsCount}},
+                {deletedAt: null}
+            ]
+        };
+    }
+    documentInfo.optionInfo = {};
+    documentInfo.projectionInfo = {
+        _id: 1,
+        flightId: 1,
+        availableSeats: 1,
+        className: 1,
+        classType: 1
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(async docInfo => {
+                let notPossibleClassesInfo = {};
+                for (let i in docInfo) {
+                    // get on hold seats info by classId
+                    let classOnHoldSeatsCount = await classHelper.getOnHoldSeatsCountByClassId(docInfo[i]._id);
+
+                    if (!_.has(notPossibleClassesInfo, docInfo[i].flightId)) {
+                        notPossibleClassesInfo[docInfo[i].flightId] = [];
+                    }
+
+                    if (docInfo[i].availableSeats - classOnHoldSeatsCount > 0) {
+                        docInfo[i].availableSeats = docInfo[i].availableSeats - classOnHoldSeatsCount;
+
+                        delete docInfo[i]['_id'];
+                        notPossibleClassesInfo[docInfo[i].flightId].push(docInfo[i])
+                    }
+                }
+
+                resolve(notPossibleClassesInfo)
             })
             .catch(reject)
     });
