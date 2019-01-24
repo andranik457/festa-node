@@ -270,6 +270,8 @@ async function mainSearchResult(data) {
     // get not availableClasses for selected Flights
     let returnFlightsNotPossibleClasses = await checkNotPossibleClasses(data, availableReturnFlightsIds);
 
+
+
     let searchResult = [];
     searchResult['departure'] = [];
     searchResult['return'] = [];
@@ -282,12 +284,12 @@ async function mainSearchResult(data) {
             searchResult['departure'].push(availableFlight)
         }
 
-        // for not possible classes
-        if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
-            availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
-
-            searchResult['departure'].push(availableFlight)
-        }
+        // // for not possible classes
+        // if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
+        //     availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
+        //
+        //     searchResult['departure'].push(availableFlight)
+        // }
     });
 
     // append return classes
@@ -298,12 +300,12 @@ async function mainSearchResult(data) {
             searchResult['return'].push(availableFlight)
         }
 
-        // for not possible classes
-        if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
-            availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
-
-            searchResult['departure'].push(availableFlight)
-        }
+        // // for not possible classes
+        // if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
+        //     availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
+        //
+        //     searchResult['departure'].push(availableFlight)
+        // }
     });
 
     data.departureInfo = searchResult.departure;
@@ -548,10 +550,12 @@ async function checkAvailableClasses(data, flightsIds) {
                     let classInfo = docInfo[i];
 
                     // get on hold seats info by classId
-                    let classOnHoldSeatsCount = await classHelper.getOnHoldSeatsCountByClassId(classInfo['_id']);
+                    // let classOnHoldSeatsCount = await classHelper.getOnHoldSeatsCountByClassId(classInfo['_id']);
 
-                    if (classInfo.availableSeats - classOnHoldSeatsCount >= needSeatsCount) {
-                        classInfo.availableSeats = classInfo.availableSeats - classOnHoldSeatsCount;
+                    // if (classInfo.availableSeats - classOnHoldSeatsCount >= needSeatsCount) {
+                    //     classInfo.availableSeats = classInfo.availableSeats - classOnHoldSeatsCount;
+                    if (classInfo.availableSeats >= needSeatsCount) {
+                        classInfo.availableSeats = classInfo.availableSeats;
 
                         if (!_.has(classesInfo, classInfo['flightId'])) {
                             classesInfo[classInfo['flightId']] = [];
