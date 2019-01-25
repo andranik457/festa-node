@@ -6,6 +6,7 @@
 const _             = require("underscore");
 const winston       = require("winston");
 const ObjectID      = require('mongodb').ObjectID;
+const moment        = require("moment");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const Helper        = require("../modules/helper");
 const FlightHelper  = require("../modules/flightHelper");
@@ -243,6 +244,17 @@ module.exports = searchInfo;
  * @returns {Promise<*>}
  */
 async function mainSearchResult(data) {
+    // check startDate | endDate
+    if (undefined !== data.body.departureDate && undefined !== data.body.returnDate) {
+        if (moment(data.body.departureDate).format("X") > moment(data.body.returnDate).format("X")) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Please check start | end date and try again (start date can't be greater than end date)"
+            })
+        }
+    }
+
     // get available flights
     let availableFlights = await checkAvailableFlights(data);
 
@@ -284,12 +296,13 @@ async function mainSearchResult(data) {
             searchResult['departure'].push(availableFlight)
         }
 
-        // for not possible classes
-        if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
-            availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
-
-            searchResult['departure'].push(availableFlight)
-        }
+        // console.log(departureFlightsNotPossibleClasses, availableFlight['_id']);
+        // // for not possible classes
+        // if (_.has(departureFlightsNotPossibleClasses, availableFlight['_id'])) {
+        //     availableFlight['notPossibleClasses'] = departureFlightsNotPossibleClasses[availableFlight['_id']];
+        //
+        //     searchResult['departure'].push(availableFlight)
+        // }
     });
 
     // append return classes
@@ -300,12 +313,12 @@ async function mainSearchResult(data) {
             searchResult['return'].push(availableFlight)
         }
 
-        // for not possible classes
-        if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
-            availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
-
-            searchResult['return'].push(availableFlight)
-        }
+        // // for not possible classes
+        // if (_.has(returnFlightsNotPossibleClasses, availableFlight['_id'])) {
+        //     availableFlight['notPossibleClasses'] = returnFlightsNotPossibleClasses[availableFlight['_id']];
+        //
+        //     searchResult['return'].push(availableFlight)
+        // }
     });
 
     data.departureInfo = searchResult.departure;
