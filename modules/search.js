@@ -260,27 +260,41 @@ async function mainSearchResult(data) {
 
     // get departure flights ID's
     let availableDepartureFlightsIds = [];
-    if (availableFlights[0] !== undefined) {
-        _.each(availableFlights[0], flightInfo => {
-            availableDepartureFlightsIds.push(flightInfo['_id'].toString());
-        });
+        if (undefined !== availableFlights[0]) {
+        for (let i in availableFlights[0]) {
+            availableDepartureFlightsIds.push(availableFlights[0][i]._id.toString())
+        }
     }
+
+    // get return flights ID's
+    let availableReturnFlightsIds = [];
+    if (undefined !== availableFlights[1]) {
+        for (let j in availableFlights[1]) {
+            availableReturnFlightsIds.push(availableFlights[1][j]._id.toString())
+        }
+    }
+
+
     // get availableClasses for selected Flights
     let departureFlightsClasses = await checkAvailableClasses(data, availableDepartureFlightsIds);
     // get not availableClasses for selected Flights
     let departureFlightsNotPossibleClasses = await checkNotPossibleClasses(data, availableDepartureFlightsIds);
 
-    // get return flights ID's
-    let availableReturnFlightsIds = [];
-    if (availableFlights[1] !== undefined) {
-        _.each(availableFlights[1], flightInfo => {
-            availableReturnFlightsIds.push(flightInfo['_id'].toString());
-        });
-    }
+
+    // return
+
+
     // get availableClasses for selected Flights
     let returnFlightsClasses = await checkAvailableClasses(data, availableReturnFlightsIds);
     // get not availableClasses for selected Flights
     let returnFlightsNotPossibleClasses = await checkNotPossibleClasses(data, availableReturnFlightsIds);
+
+
+
+
+
+
+
 
 
 
@@ -387,6 +401,12 @@ async function checkAvailableFlights(data) {
                     });
                 }
             });
+            // check return date
+            if (undefined !== data.body.returnDate) {
+                departureFilter["$and"].push({
+                    'dateInfo.startDate': {$lte: data.body.returnDate}
+                });
+            }
 
             // create return filter
             let availableFiltersForReturnFlight = {
@@ -409,6 +429,12 @@ async function checkAvailableFlights(data) {
                     });
                 }
             });
+            // check departure date
+            if (undefined !== data.body.departureDate) {
+                returnFilter["$and"].push({
+                    'dateInfo.startDate': {$gte: data.body.departureDate}
+                });
+            }
 
             // get departure and return flights info
             let roundTripFlightsInfo = await Promise.all([
@@ -421,9 +447,9 @@ async function checkAvailableFlights(data) {
         else {
             // create departure filter
             let availableFiltersForDepartureFlight = {
-                "departureFrom":    "from",
-                "destinationTo":    "to",
-                "departureDate":    "dateInfo.startDate",
+                "departureFrom": "from",
+                "destinationTo": "to",
+                "departureDate": "dateInfo.startDate",
             };
 
             let departureFilter = {
@@ -442,9 +468,9 @@ async function checkAvailableFlights(data) {
 
             // create return filter
             let availableFiltersForReturnFlight = {
-                "departureFrom1":    "from",
-                "destinationTo1":    "to",
-                "returnDate":        "dateInfo.startDate",
+                "departureFrom1": "from",
+                "destinationTo1": "to",
+                "returnDate":     "dateInfo.startDate",
             };
 
             let returnFilter = {
