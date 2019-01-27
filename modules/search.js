@@ -404,7 +404,7 @@ async function checkAvailableFlights(data) {
             // check return date
             if (undefined !== data.body.returnDate) {
                 departureFilter["$and"].push({
-                    'dateInfo.startDate': {$lte: data.body.returnDate}
+                    'dateInfo.startDate': {$lt: data.body.returnDate}
                 });
             }
 
@@ -432,7 +432,7 @@ async function checkAvailableFlights(data) {
             // check departure date
             if (undefined !== data.body.departureDate) {
                 returnFilter["$and"].push({
-                    'dateInfo.startDate': {$gte: data.body.departureDate}
+                    'dateInfo.startDate': {$gt: data.body.departureDate}
                 });
             }
 

@@ -568,7 +568,7 @@ function getFlight(data) {
     return new Promise((resolve, reject) => {
         mongoRequests.findDocument(documentInfo)
             .then(docInfo => {
-                data.result = docInfo
+                data.result = docInfo;
 
                 resolve(data)
             })

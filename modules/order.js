@@ -80,6 +80,11 @@ const orderInfo = {
 
     },
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<{code: number, status: string, message: string}>}
+     */
     async cancelPreOrder (req) {
         let data = {
             body: req.body,
@@ -133,8 +138,8 @@ const orderInfo = {
             comment: {
                 name: "Comment",
                 type: "text",
-                minLength: 1,
-                maxLength: 128,
+                minLength: 0,
+                maxLength: 1024,
             },
             contactPersonFullName: {
                 name: "Contact Person Full name",
@@ -1358,6 +1363,11 @@ async function createValidateFormDependPassengerType(body) {
     }
 }
 
+/**
+ *
+ * @param passengerInfo
+ * @returns {Promise<*>}
+ */
 async function createValidateFormDependPassengerTypeForEdit (passengerInfo) {
     if (undefined === passengerInfo.passengerType) {
         return errorTexts.passengerType
