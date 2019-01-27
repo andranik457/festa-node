@@ -221,7 +221,7 @@ async function validateData(data) {
             }
 
             // Type
-            if (typeof validationFields[field].type !== "undefined") {
+            if ((typeof validationFields[field].type !== "undefined") && (checkData[field] !== undefined)) {
 
                 // email
                 if ("email" === validationFields[field].type) {
@@ -1009,17 +1009,22 @@ async function checkCommissionAmount(pricesInfo, currency, classInfo) {
 }
 
 async function checkPassengerAge(passengerType, passengerDob, checkDate) {
-    let passengerAge = Math.floor(moment(checkDate).diff(moment(passengerDob),'years',true));
+    if ("Adults" !== passengerType) {
+        let passengerAge = Math.floor(moment(checkDate).diff(moment(passengerDob),'years',true));
 
-    if ("Adults" === passengerType && 12 >= passengerAge) {
-        return false
+        if ("Child" === passengerType && 12 < passengerAge) {
+            return false
+        }
+        else if ("Infant" === passengerType && 2 < passengerAge) {
+            return false
+        }
     }
-    else if ("Child" === passengerType && 12 < passengerAge) {
-        return false
-    }
-    else if ("Infant" === passengerType && 2 < passengerAge) {
-        return false
-    }
+
+    // if ("Adults" === passengerType && 12 >= passengerAge) {
+    //     return false
+    // }
+    // else
+
 
     return true;
 }

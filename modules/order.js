@@ -209,6 +209,15 @@ const orderInfo = {
         // check and validate passenger info
         let passengersInfo = JSON.parse(Buffer.from(req.body.passengersInfo, 'base64').toString('utf8'));
 
+        // check passengers count | orderInfo passengers info
+        if (pnrInfo.passengersCount !== passengersInfo.length) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Please check passengers count: passengers count not equal with preOrder info"
+            })
+        }
+
         let passengerInfo = [];
         for (let i in passengersInfo) {
             let ticketNumber = await Helper.getNewTicketNumber();
@@ -1315,7 +1324,6 @@ async function createValidateFormDependPassengerType(body) {
                 type: "onlyDate",
                 minLength: 4,
                 maxLength: 24,
-                required: true
             },
         };
     }
