@@ -568,8 +568,8 @@ const orderInfo = {
                 comment: {
                     name: "Comment",
                     type: "text",
-                    minLength: 1,
-                    maxLength: 128,
+                    minLength: 0,
+                    maxLength: 1024,
                 },
                 contactPersonFullName: {
                     name: "Contact Person Full name",
