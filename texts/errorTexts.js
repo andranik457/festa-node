@@ -191,6 +191,12 @@ const text = {
         code: 400,
         status: "error",
         message: "Please check return classId and try again"
+    },
+
+    userNotFound: {
+        code: 400,
+        status: "error",
+        message: "Ups: User not found"
     }
 
 };
