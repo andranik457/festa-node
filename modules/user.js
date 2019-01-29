@@ -761,7 +761,7 @@ const user = {
         };
 
         return new Promise((resolve, reject) => {
-            if ("Admin" !== data.userInfo.role) {
+            if (!("Admin" === data.userInfo.role || data.userInfo.userId === data.userId)) {
                 reject(errorTexts.userRole)
             }
 
