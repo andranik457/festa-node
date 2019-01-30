@@ -441,11 +441,11 @@ const orderInfo = {
 
             if (1 === order.success) {
                 if (undefined !== pnrInfo.returnClassInfo) {
-                    await classHelper.asyncUsePlaces(pnrInfo.returnClassInfo._id, pnrInfo.returnClassInfo.pricesTotalInfo.count)
+                    await classHelper.decreaseClassSeatsCount(pnrInfo.returnClassInfo._id, 0, pnrInfo.usedSeats)
                 }
 
                 await Promise.all([
-                    classHelper.asyncUsePlaces(pnrInfo.departureClassInfo._id, pnrInfo.departureClassInfo.pricesTotalInfo.count),
+                    classHelper.decreaseClassSeatsCount(pnrInfo.departureClassInfo._id, 0, pnrInfo.usedSeats),
                     classHelper.asyncRemoveOnHoldPlaces(pnrInfo.pnr),
                     orderHelper.removePreOrdersByPnr(pnrInfo.pnr)
                 ]);
