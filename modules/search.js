@@ -543,9 +543,9 @@ async function checkAvailableClasses(data, flightsIds) {
     if (data.body.passengerTypeChild) {
         needSeatsCount += parseInt(data.body.passengerTypeChild);
     }
-    if (data.body.passengerTypeInfant) {
-        needSeatsCount += parseInt(data.body.passengerTypeInfant);
-    }
+    // if (data.body.passengerTypeInfant) {
+    //     needSeatsCount += parseInt(data.body.passengerTypeInfant);
+    // }
 
     // check user role
     let onlyForAdmin = {$ne: true};
