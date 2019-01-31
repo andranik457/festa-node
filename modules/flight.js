@@ -484,10 +484,23 @@ async function updateFlight(data) {
         }
     }
 
-    await Promise.all([
+
+    let logData = {
+        userId:     data.userInfo.userId,
+        action:     "Flight Edit",
+        oldData:    data.flightInfo,
+        newData:    {
+            editableFields: data.editableFieldsValues,
+            orders: bulkWriteOrders,
+            preOrders: bulkWritePreOrders,
+        },
+    };
+
+    let resultInfo = await Promise.all([
         bulkUpdateOrders(bulkWriteOrders),
         bulkUpdatePreOrders(bulkWritePreOrders),
-        updateFlightInfo(data.flightId, data.editableFieldsValues)
+        updateFlightInfo(data.flightId, data.editableFieldsValues),
+        Helper.addToLogs(logData)
     ]);
 
     return Promise.resolve({
@@ -700,6 +713,10 @@ async function generatePreOrderEditDataByPnr(pnr, flightType, editableFieldsValu
 }
 
 async function bulkUpdateOrders(bulkWriteOrders) {
+    if (bulkWriteOrders.length === 0) {
+        return "success"
+    }
+
     // bulk update all connected orders
     let documentInfo = {};
     documentInfo.collectionName = "orders";
@@ -711,6 +728,10 @@ async function bulkUpdateOrders(bulkWriteOrders) {
 }
 
 async function bulkUpdatePreOrders(bulkWritePreOrders) {
+    if (bulkWritePreOrders.length === 0) {
+        return "success"
+    }
+
     // bulk update all connected preOrders
     let documentInfo = {};
     documentInfo.collectionName = "preOrders";
