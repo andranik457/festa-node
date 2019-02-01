@@ -557,6 +557,17 @@ async function updateClass(data) {
     // let updateInfo = data.editableFieldsValues;
     updateInfo.updatedAt = currentTime;
 
+
+    // check only for admin case
+    if (undefined !== updateInfo.onlyForAdmin) {
+        if ("True" === updateInfo.onlyForAdmin) {
+            updateInfo.onlyForAdmin = true
+        }
+        else {
+            updateInfo.onlyForAdmin = false
+        }
+    }
+
     let documentInfo = {};
     documentInfo.collectionName = "classes";
     documentInfo.filterInfo = {_id: ObjectID(data.classId)};
