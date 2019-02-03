@@ -13,6 +13,7 @@ const secret        = config[process.env.NODE_ENV].jwtSecret;
 //
 const auth          = require("./middlewares/auth");
 //
+const logs          = require("./routes/logs");
 const messages      = require("./routes/messages");
 const flights       = require("./routes/flights");
 const classes       = require("./routes/classes");
@@ -40,6 +41,7 @@ app.use("/api", auth.isAuth);
 /**
  * Routes
  */
+app.use("/api/logs", logs);
 app.use("/api/messages", messages);
 app.use("/api/flights", flights);
 app.use("/api/classes", classes);
