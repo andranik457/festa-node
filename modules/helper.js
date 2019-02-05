@@ -43,7 +43,8 @@ const helper = {
     addToLogs,
     checkCommissionAmount,
     checkPassengerAge,
-    logTransactionResult
+    logTransactionResult,
+    getOrderByPnrLastName
 };
 
 /**
@@ -167,6 +168,10 @@ async function getNewPnrId() {
     });
 }
 
+/**
+ *
+ * @returns {Promise<any>}
+ */
 async function getNewTicketNumber() {
     let documentInfo = {};
     documentInfo.collectionName = "autoincrement";
@@ -459,9 +464,6 @@ async function generateUpdateInfo(data) {
     return updateCriteria;
 }
 
-
-
-
 /**
  *
  * @returns {{amd: number, usd: number}}
@@ -528,9 +530,6 @@ async function getCurrencyInfo() {
 //         });
 //     });
 // }
-
-
-
 
 /**
  *
@@ -628,34 +627,15 @@ async function getEditableFieldsValues(data) {
     return data;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ *
+ * @param classInfo
+ * @param data
+ * @param currency
+ * @returns {Promise<*>}
+ */
 async function asyncGetClassPrice(classInfo, data, currency) {
     // for one way
     let priceInfo = {};
@@ -720,6 +700,14 @@ async function asyncGetClassPrice(classInfo, data, currency) {
 
 }
 
+/**
+ *
+ * @param priceInfo
+ * @param classInfo
+ * @param data
+ * @param currency
+ * @returns {Promise<*>}
+ */
 async function asyncPrivateAppendPricesToClass(priceInfo, classInfo, data, currency) {
     classInfo.prices = [];
 
@@ -947,6 +935,11 @@ async function asyncGetExchangeRateByDate(currentDate) {
 
 }
 
+/**
+ *
+ * @param target
+ * @returns {Promise<*>}
+ */
 async function extend(target) {
     let sources = [].slice.call(arguments, 1);
     sources.forEach(function (source) {
@@ -958,6 +951,11 @@ async function extend(target) {
     return target;
 }
 
+/**
+ *
+ * @param logData
+ * @returns {Promise<any>}
+ */
 async function addToLogs(logData) {
     let currentTime = Math.floor(Date.now() / 1000);
 
@@ -981,6 +979,13 @@ async function addToLogs(logData) {
     });
 }
 
+/**
+ *
+ * @param pricesInfo
+ * @param currency
+ * @param classInfo
+ * @returns {Promise<number>}
+ */
 async function checkCommissionAmount(pricesInfo, currency, classInfo) {
     let commissionAmount = 0;
     for (let i in pricesInfo) {
@@ -1008,6 +1013,13 @@ async function checkCommissionAmount(pricesInfo, currency, classInfo) {
     return commissionAmount;
 }
 
+/**
+ *
+ * @param passengerType
+ * @param passengerDob
+ * @param checkDate
+ * @returns {Promise<boolean>}
+ */
 async function checkPassengerAge(passengerType, passengerDob, checkDate) {
     if ("Adults" !== passengerType) {
         let passengerAge = Math.floor(moment(checkDate).diff(moment(passengerDob),'years',true));
@@ -1029,6 +1041,11 @@ async function checkPassengerAge(passengerType, passengerDob, checkDate) {
     return true;
 }
 
+/**
+ *
+ * @param logInfoArray
+ * @returns {Promise<any>}
+ */
 async function logTransactionResult(logInfoArray) {
     let currentTime = Math.floor(Date.now() / 1000);
 
@@ -1047,6 +1064,76 @@ async function logTransactionResult(logInfoArray) {
                     : reject(errorTexts.saveUser)
             })
     });
+}
+
+
+async function getOrderByPnrLastName(req) {
+    let pnr = req.params.pnr.toString();
+    let lastName = req.params.lastName.toString();
+
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        pnr: pnr,
+        ticketStatus: "Ticketing",
+        'passengerInfo.surname': lastName
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocument(documentInfo)
+            .then(docInfo => {
+                if (null === docInfo) {
+                    reject(errorTexts.notFound)
+                }
+                else {
+                    let resultData = {};
+
+                    resultData.pnr = docInfo.pnr;
+                    resultData.travelInfo = {
+                        createdAt: docInfo.travelInfo.createdAt,
+                        travelType: docInfo.travelInfo.travelType,
+                        passengersCount: docInfo.travelInfo.passengersCount,
+                        departureFlightInfo: {
+                            from: docInfo.travelInfo.departureFlightInfo.from,
+                            to: docInfo.travelInfo.departureFlightInfo.to,
+                            airline: docInfo.travelInfo.departureFlightInfo.airline,
+                        },
+                    };
+
+                    if (undefined !== docInfo.travelInfo.returnFlightInfo) {
+                        resultData.travelInfo.returnFlightInfo = {
+                            from: docInfo.travelInfo.returnFlightInfo.from,
+                            to: docInfo.travelInfo.returnFlightInfo.to,
+                            airline: docInfo.travelInfo.returnFlightInfo.airline,
+                        }
+                    }
+
+                    // try to find user by selected lastName
+                    resultData.passengerInfo = [];
+                    for (let i in docInfo.passengerInfo) {
+                        if (lastName === docInfo.passengerInfo[i].surname) {
+                            resultData.passengerInfo.push({
+                                name:           docInfo.passengerInfo[i].name,
+                                surname:        docInfo.passengerInfo[i].surname,
+                                gender:         docInfo.passengerInfo[i].gender,
+                                passengerType:  docInfo.passengerInfo[i].passengerType,
+                                passportNumber: docInfo.passengerInfo[i].passportNumber,
+                                dob:            docInfo.passengerInfo[i].dob,
+                                ticketNumber:   docInfo.passengerInfo[i].ticketNumber
+                            })
+                        }
+                    }
+
+                    resolve({
+                        code: 200,
+                        status: "error",
+                        message: resultData
+                    })
+                }
+            })
+    });
+
+
 }
 
 module.exports = helper;

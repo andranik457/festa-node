@@ -118,8 +118,6 @@ router.get("/exchangeRate", async (req, res, next) => {
 });
 
 
-
-
 router.post("/exchange/rate-by-range", async (req, res, next) => {
     try {
         res.send({
@@ -128,6 +126,16 @@ router.post("/exchange/rate-by-range", async (req, res, next) => {
             message: "Exchange Rate Info For Selected Range!",
             result : await exchangeFunc.rateByRange(req)
         })
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+router.get("/orderInfo/:pnr/:lastName", async (req, res, next) => {
+    try {
+        res.send(await Helper.getOrderByPnrLastName(req));
     }
     catch (err) {
         winston.log("error", err);

@@ -197,6 +197,13 @@ const text = {
         code: 400,
         status: "error",
         message: "Ups: User not found"
+    },
+
+    notFound: {
+        code: 400,
+        status: "error",
+        message: "Ups: No information for this request!",
+        logs: "Please check input data and try again"
     }
 
 };
