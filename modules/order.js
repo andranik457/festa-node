@@ -670,6 +670,18 @@ const orderInfo = {
                                 // validate passenger data
                                 await Helper.validateData(data);
 
+                                // check passport number
+                                let passportNumberInfo = null;
+                                if (passengersInfo[i].passportNumber === "") {
+                                    passportNumberInfo = ""
+                                }
+                                else if (undefined === passengersInfo[i].passportNumber) {
+                                    passportNumberInfo = currentPassengerInfo.passportNumber
+                                }
+                                else {
+                                    passportNumberInfo = passengersInfo[i].passportNumber
+                                }
+
                                 passengerInfo.push({
                                     id:             currentPassengerInfo.id,
                                     ticketNumber:   currentPassengerInfo.ticketNumber,
@@ -678,7 +690,7 @@ const orderInfo = {
                                     name:           passengersInfo[i].name              || currentPassengerInfo.name,
                                     surname:        passengersInfo[i].surname           || currentPassengerInfo.surname,
                                     gender:         passengersInfo[i].gender            || currentPassengerInfo.gender,
-                                    passportNumber: passengersInfo[i].passportNumber    || currentPassengerInfo.passportNumber
+                                    passportNumber: passportNumberInfo
                                 });
                             }
                         }
