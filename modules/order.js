@@ -1316,7 +1316,7 @@ async function createValidateFormDependPassengerType(body) {
             passportNumber: {
                 name: "Passport number",
                 type: "text",
-                minLength: 3,
+                minLength: 0,
                 maxLength: 18,
             },
             dob: {
@@ -1354,7 +1354,7 @@ async function createValidateFormDependPassengerType(body) {
             passportNumber: {
                 name: "Passport number",
                 type: "text",
-                minLength: 3,
+                minLength: 0,
                 maxLength: 18,
             },
             dob: {
