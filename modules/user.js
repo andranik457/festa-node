@@ -596,12 +596,20 @@ const user = {
             userInfo: req.userInfo,
             editableUserId: req.params.userId.toString(),
             editableFields: possibleForm,
-            editableFieldsValues: req.body
+            editableFieldsValues: req.body,
+            routePath: req.routePath
         };
 
         // check action maker role
-        if ("Admin" !== data.userInfo.role) {
-            return Promise.reject(errorTexts.userRole)
+        if ("/balance/transfer/:agentId" === data.routePath || "/refund/:pnr" === data.routePath) {
+            if ("Admin" !== data.userInfo.role) {
+                return Promise.reject(errorTexts.userRole)
+            }
+        }
+        else {
+            if (!("Admin" === data.userInfo.role && "Higher" === data.userInfo.privilege)) {
+                return Promise.reject(errorTexts.userRole)
+            }
         }
 
         // get user info
@@ -688,12 +696,20 @@ const user = {
             userInfo: req.userInfo,
             editableUserId: req.params.userId.toString(),
             editableFields: possibleForm,
-            editableFieldsValues: req.body
+            editableFieldsValues: req.body,
+            routePath: req.routePath
         };
 
         // check action maker role
-        if ("Admin" !== data.userInfo.role) {
-            return Promise.reject(errorTexts.userRole)
+        if ("/balance/transfer/:agentId" === data.routePath || "/refund/:pnr" === data.routePath) {
+            if ("Admin" !== data.userInfo.role) {
+                return Promise.reject(errorTexts.userRole)
+            }
+        }
+        else {
+            if (!("Admin" === data.userInfo.role && "Higher" === data.userInfo.privilege)) {
+                return Promise.reject(errorTexts.userRole)
+            }
         }
 
         // get user info
@@ -744,6 +760,137 @@ const user = {
         }
         else {
             return Promise.reject(errorTexts.forEnyCase)
+        }
+
+    },
+
+    /**
+     *
+     * @param req
+     * @returns {Promise<*>}
+     */
+    balanceTransfer: async (req) => {
+        const possibleForm = {
+            currency: {
+                name: "Currency",
+                type: "text",
+                minLength: 3,
+                maxLength: 3,
+                required: true
+            },
+            amount: {
+                name: "Amount",
+                type: "number",
+                required: true
+            },
+            description: {
+                name: "Description",
+                type: "text",
+                minLength: 3,
+                maxLength: 512,
+                required: true
+            },
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            agentId: req.params.agentId.toString(),
+            editableFields: possibleForm,
+            editableFieldsValues: req.body,
+            routePath: req.route.path || ""
+        };
+        data.body.paymentType = "Balance-Transfer";
+
+        // check action maker role
+        if ("Admin" !== data.userInfo.role) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // 1. Check agent info
+        // 2. try to use user balance
+        // 3. try to increase agent balance
+        // 4. add to logs
+        // 5. save transaction info
+        let transactionInfo = [];
+
+        let logsInfo = {
+            userId: data.userInfo.userId,
+            action: "Balance-Transfer",
+            oldData: {},
+            newData: {}
+        };
+
+        const agentInfo = await userHelper.asyncGetUserInfoById(data.agentId);
+        if (null === agentInfo || undefined === agentInfo.userId || agentInfo.status !== "approved") {
+            return Promise.reject(errorTexts.userNotFound)
+        }
+
+        // add log oldData
+        logsInfo.oldData = agentInfo.balance;
+
+        let useBalanceData = {
+            body: data.body,
+            userInfo: data.userInfo,
+            params: {
+                userId: data.userInfo.userId
+            },
+            routePath: data.routePath
+        };
+
+        let useBalanceInfo = await user.useBalance(useBalanceData);
+        transactionInfo.push(useBalanceInfo);
+        if (200 === parseInt(useBalanceInfo.code)) {
+            let increaseBalanceData = {
+                body: data.body,
+                userInfo: data.userInfo,
+                params: {
+                    userId: data.agentId
+                },
+                routePath: data.routePath
+            };
+
+            // add log newData
+            logsInfo.newData.useBalance = {
+                data: useBalanceData.body
+            };
+
+            let increaseBalanceInfo = await user.increaseBalance(increaseBalanceData);
+            transactionInfo.push(increaseBalanceInfo);
+            if (200 === parseInt(increaseBalanceInfo.code)) {
+                // add log newData
+                logsInfo.newData.increaceBalance = {
+                    agentId: increaseBalanceData.params.userId,
+                    data: increaseBalanceData.body
+                };
+
+                // save logData
+                let logSaveResult = await Helper.addToLogs(logsInfo);
+                transactionInfo.push(logSaveResult);
+                await Helper.logTransactionResult(transactionInfo);
+
+                return Promise.resolve(increaseBalanceInfo)
+            }
+            else {
+                // reset amount tu user account
+                let increaseBalanceData = {
+                    body: req.body,
+                    userInfo: req.userInfo,
+                    params: {
+                        userId: req.userInfo
+                    },
+                    routePath: data.routePath
+                };
+
+                let resetBalanceInfo = await user.increaseBalance(increaseBalanceData);
+                transactionInfo.push(resetBalanceInfo);
+                await Helper.logTransactionResult(transactionInfo);
+
+                return Promise.reject(increaseBalanceInfo)
+            }
+        }
+        else {
+            return Promise.reject(useBalanceInfo)
         }
 
     },

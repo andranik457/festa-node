@@ -845,7 +845,8 @@ const orderInfo = {
             pnr: req.params.pnr.toString(),
             possibleForm: possibleFields,
             editableFields: possibleFields,
-            editableFieldsValues: req.body
+            editableFieldsValues: req.body,
+            routePath: req.route.path || ""
         };
 
         data = await Helper.validateData(data);
@@ -949,6 +950,7 @@ const orderInfo = {
         refundInfo.userInfo = req.userInfo;
         refundInfo.params = {};
         refundInfo.params.userId = orderInfo.agentId;
+        refundInfo.routePath = data.routePath;
 
         // commission document info
         let commissionInfo = {};
@@ -961,7 +963,8 @@ const orderInfo = {
         commissionInfo.userInfo = req.userInfo;
         commissionInfo.params = {};
         commissionInfo.params.userId = req.userInfo.userId;
-
+        commissionInfo.routePath = data.routePath;
+        
         // log data
         let logData = {
             userId: data.userInfo.userId,

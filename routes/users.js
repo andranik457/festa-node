@@ -131,6 +131,19 @@ router.post("/use-balance/:userId", async (req, res, next) => {
 });
 
 /**
+ * Balance transfer
+ */
+router.post("/balance/transfer/:agentId", async (req, res, next) => {
+    try {
+        res.send(await userFunc.balanceTransfer(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+/**
  * Set user credit balance
  */
 router.post("/set-credit-limit/:userId", async (req, res, next) => {
