@@ -29,6 +29,18 @@ const config = {
             }
         },
 
+        mongoConfFiles: {
+            dbName: "files",
+            url: "mongodb://localhost/files",
+            options: {
+                server: {
+                    auto_reconnect : true,
+                    reconnectTries : 17280,
+                    reconnectInterval : 5000
+                }
+            }
+        },
+
         jwtSecret: "resti!$ret*&key", // JWT secret
     },
 
@@ -42,6 +54,18 @@ const config = {
         mongoConf: {
             dbName: "festa",
             url: "mongodb://localhost/festa",
+            options: {
+                server: {
+                    auto_reconnect : true,
+                    reconnectTries : 17280,
+                    reconnectInterval : 5000
+                }
+            }
+        },
+
+        mongoConfFiles: {
+            dbName: "files",
+            url: "mongodb://localhost/files",
             options: {
                 server: {
                     auto_reconnect : true,

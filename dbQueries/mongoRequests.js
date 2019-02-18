@@ -9,7 +9,7 @@ const mongo         = require("mongodb");
 const _             = require("underscore");
 const winston       = require("winston");
 const config        = require("../config/config");
-const errorTexts      = require("../texts/errorTexts");
+const errorTexts    = require("../texts/errorTexts");
 
 /**
  * MongoDB db:Festa Connection
@@ -110,7 +110,9 @@ const mongoQueries = {
     },
 
     /**
-    *
+     *
+     * @param data
+     * @returns {Promise<any>}
      */
     removeDocument : data => {
         return new Promise((resolve, reject) => {
@@ -119,23 +121,16 @@ const mongoQueries = {
         });
     },
 
+    /**
+     *
+     * @param data
+     * @returns {Promise<any>}
+     */
     bulkWrite : data => {
         return new Promise((resolve, reject) => {
-        // console.log(data.info)
-
             databaseFesta.collection(data.collectionName).bulkWrite(data.info)
                 .then(resolve, reject)
         });
-
-        // databaseFesta.collection(orders).bulkWrite(
-        //     [
-        //         { updateOne :
-        //                 "filter" : { "pnr" : "F100138" },
-        //                 "update" : { $set : { 'agentInfo.companyName': "asdsadsadasd" } }
-        //
-        //         },
-        //     ]
-        // )
     },
 
     /**
@@ -151,6 +146,11 @@ const mongoQueries = {
         });
     },
 
+    /**
+     *
+     * @param bearer
+     * @param next
+     */
     findToken : (bearer, next) => {
         let filter = {tokens: bearer};
 

@@ -3,75 +3,109 @@
  * Modoule Dependencies
  */
 
-const mongoRequests     = require("../dbQueries/mongoRequests");
-const successTexts      = require("../texts/successTexts");
-const errorTexts        = require("../texts/errorTexts");
-const helperFunc        = require("../modules/helper");
-const userHelperFunc    = require("../modules/userHelper");
+const Busboy                = require("busboy");
+const config                = require("../config/config");
+const mongoRequests         = require("../dbQueries/mongoRequests");
+const mongoRequestsFiles    = require("../dbQueries/mongoRequestsFiles");
+const successTexts          = require("../texts/successTexts");
+const errorTexts            = require("../texts/errorTexts");
+const helperFunc            = require("../modules/helper");
+const userHelperFunc        = require("../modules/userHelper");
+const resourcesFunc         = require("../modules/resources");
+
 
 const messagesInfo = {
 
-    async compose (req)  {
+    async compose (req) {
 
-        const possibleFields = {
-            adminId: {
-                name: "AdminId",
-                type: "number",
-                minLength: 1,
-                maxLength: 128,
-                required: true
-            },
-            subject: {
-                name: "Subject",
-                type: "text",
-                minLength: 1,
-                maxLength: 128,
-                required: true
-            },
-            text: {
-                name: "Text",
-                type: "text",
-                minLength: 1,
-                maxLength: 1028,
-                required: true
+        let busboy = new Busboy({
+            headers: req.headers,
+            limits: {
+                files: 1,
+                fileSize: 2 * 1024 * 1024
             }
-        };
+        });
 
-        let data = {
-            body: req.body,
-            userInfo: req.userInfo,
-            editableFields: possibleFields,
-            editableFieldsValues: req.body
-        };
+        let composeResult = null;
+        let fileStoreResult = null;
+        let fieldData = {};
 
-        // validate main info
-        await helperFunc.validateData(data);
+        return new Promise((resolve, reject) => {
+            busboy.on('file', async (fieldName, file, fileName, encoding, mimeType) => {
+                let data = {
+                    file: file,
+                    filename: fileName,
+                    fieldName: fieldName,
+                    type: mimeType,
+                    fileSize: "2Mb"
+                };
 
-        // check is available admin
-        let adminInfo = await userHelperFunc.asyncGetUserInfoById(data.body.adminId);
+                fileStoreResult = await mongoRequestsFiles.storeResource(data);
+            });
 
-        if (null === adminInfo || "approved" !== adminInfo.status) {
-            return Promise.reject(errorTexts.userNotFound)
-        }
-        else if ("Admin" !== adminInfo.role) {
-            return Promise.reject(errorTexts.userRole)
-        }
+            busboy.on('field', function (fieldName, fieldValue, truncated, valTruncated, encoding, mimeType) {
+                fieldData[fieldName] = fieldValue;
+            });
 
-        let messageInfo = {
-            creatorId: data.userInfo.userId,
-            receiverId: data.body.adminId,
-            subject: data.body.subject,
-            text: data.body.text
-        };
+            busboy.on('finish', async () => {
+                const possibleFields = {
+                    subject: {
+                        name: "Subject",
+                        type: "text",
+                        minLength: 1,
+                        maxLength: 128,
+                        required: true
+                    },
+                    text: {
+                        name: "Text",
+                        type: "text",
+                        minLength: 1,
+                        maxLength: 1028,
+                        required: true
+                    }
+                };
 
-        let composeResult = await composeMessage(messageInfo);
-        
-        if (200 === composeResult.code) {
-            return Promise.resolve(composeResult)
-        }
-        else {
-            return Promise.reject(composeResult)
-        }
+                let data = {
+                    body: fieldData,
+                    userInfo: req.userInfo,
+                    editableFields: possibleFields,
+                    editableFieldsValues: fieldData
+                };
+
+                // try to validate data
+                let validateError = null;
+                await helperFunc.validateData(data)
+                    .catch(error => {
+                        validateError = true;
+                        return reject(error)
+                    });
+                if (validateError) {
+                    return
+                }
+
+                let messageInfo = {
+                    status: "Open",
+                    creatorId: data.userInfo.userId,
+                    subject: data.body.subject,
+                    text: data.body.text
+                };
+
+                if (fileStoreResult) {
+                    messageInfo.fileUrl = config[process.env.NODE_ENV].httpUrl +'/resource/'+ fileStoreResult;
+                }
+
+                composeResult = await composeMessage(messageInfo);
+
+                if (200 === composeResult.code) {
+                    return resolve(composeResult)
+                }
+                else {
+                    return reject(composeResult)
+                }
+            });
+
+            req.pipe(busboy);
+        });
 
     }
 

@@ -31,6 +31,7 @@ app.use(cors());
 app.use("/api", expressJwt({secret: secret}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(bodyParser.text({type : "application/x-www-form-urlencoded", limit: '8mb'}));
+app.use(bodyParser.json());
 
 /**
  * Routes

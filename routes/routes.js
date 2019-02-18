@@ -5,10 +5,11 @@
 
 const router        = require("express").Router();
 const url           = require('url');
+const winston       = require("winston");
 const userFunc      = require("../modules/user");
 const exchangeFunc  = require("../modules/exchange");
 const Helper        = require("../modules/helper");
-const winston       = require("winston");
+const resourcesFunc = require("../modules/resources");
 
 /**
  * User Register
@@ -141,6 +142,14 @@ router.get("/orderInfo/:pnr/:lastName", async (req, res, next) => {
         winston.log("error", err);
         next(err);
     }
+});
+
+router.get("/resource/:id", (req, res, next) => {
+    resourcesFunc.getResource(req, (err, readStream, file) => {
+        if (err) return next(err);
+        res.header("Content-Type", file.contentType || file);
+        readStream.pipe(res);
+    });
 });
 
 /**
