@@ -206,6 +206,16 @@ const orderInfo = {
         // check pnr
         let pnrInfo = await Helper.asyncGetPnrInfo(req.body.pnr);
 
+        // check is pnr exists in orders or not
+        let pnrExists = await checkPnrInOrders(req.body.pnr);
+        if (pnrExists > 0) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Please check PNR and try again (already in use)"
+            })
+        }
+
         // check and validate passenger info
         let passengersInfo = JSON.parse(Buffer.from(req.body.passengersInfo, 'base64').toString('utf8'));
 
@@ -1803,30 +1813,6 @@ async function addPlacesToOnHold(pnr, classInfo, placesCount) {
 
 /**
  *
- * @param pnr
- * @returns {Promise<any>}
- */
-async function getPnrInfo(pnr) {
-    let documentInfo = {};
-    documentInfo.collectionName = "preOrders";
-    documentInfo.filterInfo = {"pnr": parseInt(pnr)};
-    documentInfo.projectionInfo = {};
-
-    return new Promise((resolve, reject) => {
-        mongoRequests.findDocument(documentInfo)
-            .then(docInfo => {
-                if (null === docInfo) {
-                    reject(errorTexts.pnrNotFound)
-                }
-                else {
-                    resolve(docInfo)
-                }
-            })
-    });
-}
-
-/**
- *
  * @param orderInfo
  * @returns {Promise<any>}
  */
@@ -2083,5 +2069,26 @@ async function removeOnHolSeats(pnr) {
     return new Promise((resolve, reject) => {
         mongoRequests.removeDocument(documentInfo)
             .then(resolve,reject)
+    });
+}
+
+async function checkPnrInOrders(pnr) {
+
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        pnr: pnr
+    };
+    documentInfo.projectionInfo = {};
+    documentInfo.optionInfo = {};
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.countDocuments(documentInfo)
+            .then(documentCount => {
+                resolve(documentCount)
+            })
+            .catch(err => {
+                reject(err)
+            })
     });
 }
