@@ -20,4 +20,19 @@ router.post("/compose", async (req, res, next) => {
     }
 });
 
+/**
+ * Get messages
+ */
+router.post("/get", async (req, res, next) => {
+    try {
+        res.send(await messagesFunc.getMessages(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
+
+
 module.exports = router;
