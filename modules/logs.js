@@ -40,33 +40,37 @@ const logsInfo = {
         // validate main info
         await helperFunc.validateData(data);
 
-        // check action maker role
-        if ("Admin" !== data.userInfo.role) {
-            return Promise.reject(errorTexts.userRole)
-        }
-
         // create filter
         let filter = {
             $and: []
         };
 
+        // check action maker role
+        if ("Admin" !== data.userInfo.role) {
+            filter.$and.push({userId: data.userInfo.userId})
+        }
+
+        // check start date
         if (undefined !== data.body.start) {
-            console.log(moment(data.body.start).format("X"));
             filter.$and.push({createdAt: {$gt: parseInt(moment(data.body.start).format("X"))}})
         }
 
+        // check end date
         if (undefined !== data.body.end) {
             filter.$and.push({createdAt: {$lt: parseInt(moment(data.body.end).format("X"))}})
         }
 
+        // check agentId
         if (undefined !== data.body.agentId) {
             filter.$and.push({userId: data.body.agentId})
         }
 
+        // check action
         if (undefined !== data.body.action) {
             filter.$and.push({action: data.body.action})
         }
 
+        // check lastDocumentId
         if (undefined !== data.body.lastDocumentId) {
             if (!ObjectID.isValid(data.body.lastDocumentId)) {
                 return Promise.reject(errorTexts.mongId);

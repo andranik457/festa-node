@@ -162,7 +162,7 @@ const user = {
                 .then(saveUser)
                 .then(data => {
                     let logData = {
-                        userId: data.userId,
+                        userId: data.userId.toString(),
                         action: "Insert User",
                         oldData: null,
                         newData: data.userInfo,
