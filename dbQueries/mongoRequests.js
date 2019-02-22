@@ -109,6 +109,21 @@ const mongoQueries = {
         });
     },
 
+    updateDocuments : data => {
+        return new Promise((resolve, reject) => {
+            databaseFesta.collection(data.collectionName).updateMany(data.filterInfo, data.updateInfo)
+                .then(result => {
+                    const { matchedCount, modifiedCount } = result;
+                    // console.log(`Successfully matched ${matchedCount} and modified ${modifiedCount} items.`)
+                    resolve({
+                        modifiedCount: modifiedCount
+                    })
+                })
+                .then(reject)
+                .catch(reject)
+        });
+    },
+
     /**
      *
      * @param data

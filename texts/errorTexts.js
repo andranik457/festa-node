@@ -133,6 +133,12 @@ const text = {
         message: "Please check pnr and try again (pnr not found)"
     },
 
+    messageNotFound: {
+        code: 400,
+        status: "error",
+        message: "Please check messageId and try again (message not found)"
+    },
+
     classNotFound: {
         code: 400,
         status: "error",

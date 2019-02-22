@@ -5,6 +5,7 @@
 
 const Busboy                = require("busboy");
 const ObjectID              = require('mongodb').ObjectID;
+const winston               = require("winston");
 const config                = require("../config/config");
 const mongoRequests         = require("../dbQueries/mongoRequests");
 const mongoRequestsFiles    = require("../dbQueries/mongoRequestsFiles");
@@ -17,6 +18,11 @@ const resourcesFunc         = require("../modules/resources");
 
 const messagesInfo = {
 
+    /**
+     *
+     * @param req
+     * @returns {Promise<any>}
+     */
     async compose (req) {
 
         let currentDate = Math.floor(Date.now() / 1000);
@@ -269,6 +275,116 @@ const messagesInfo = {
             status: "success",
             message: messages
         })
+    },
+
+    async editMessage (req) {
+
+        let currentDate = Math.floor(Date.now() / 1000);
+
+        let possibleFields = {
+            status: {
+                name: "Message Status",
+                type: "text",
+                minLength: 3,
+                maxLength: 64,
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            messageId: req.params.messageId.toString()
+        };
+
+        // get editable fields
+        await helperFunc.getEditableFields(data);
+
+        // get editable fields values
+        await helperFunc.getEditableFieldsValues(data);
+
+        // validate data
+        await helperFunc.validateData(data);
+
+        // check messageId is correct mongoId
+        if (!ObjectID.isValid(data.messageId)) {
+            return Promise.reject(errorTexts.mongId);
+        }
+
+        // get message by messageId
+        let messageInfo = await getMessageById(data.messageId);
+        if (null === messageInfo) {
+            return Promise.reject(errorTexts.messageNotFound)
+        }
+
+        // check user role
+        if ("Admin" !== data.userInfo.role && messageInfo.creatorId !== data.userInfo.userId) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // check status value
+        // switch () {
+        //
+        // }
+
+        data.editableFieldsValues['updatedAt'] = currentDate;
+        let asd = await editMessage(data.messageId, data.editableFieldsValues);
+        console.log(asd);
+    },
+
+    async editConversation (req) {
+
+        let currentDate = Math.floor(Date.now() / 1000);
+
+        let possibleFields = {
+            status: {
+                name: "Conversation Status",
+                type: "text",
+                minLength: 3,
+                maxLength: 64,
+            }
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            possibleForm: possibleFields,
+            conversationId: req.params.conversationId.toString()
+        };
+
+        // get editable fields
+        await helperFunc.getEditableFields(data);
+
+        // get editable fields values
+        await helperFunc.getEditableFieldsValues(data);
+
+        // validate data
+        await helperFunc.validateData(data);
+
+        // check messageId is correct mongoId
+        if (!ObjectID.isValid(data.conversationId)) {
+            return Promise.reject(errorTexts.mongId);
+        }
+
+        // get message by messageId
+        let messageInfo = await getMessageById(data.conversationId);
+        if (null === messageInfo) {
+            return Promise.reject(errorTexts.messageNotFound)
+        }
+
+        // check user role
+        if ("Admin" !== data.userInfo.role && messageInfo.creatorId !== data.userInfo.userId) {
+            return Promise.reject(errorTexts.userRole)
+        }
+
+        // check status value
+        // switch () {
+        //
+        // }
+
+        data.editableFieldsValues['updatedAt'] = currentDate;
+        let updateResult = await editConversation(data.conversationId, data.editableFieldsValues);
+        return updateResult;
     }
 
 };
@@ -330,5 +446,61 @@ async function getMessageById(messageId) {
                 resolve(docsInfo)
             })
             .catch(reject)
+    });
+}
+
+async function editMessage(messageId, editableFields) {
+    let documentInfo = {};
+    documentInfo.collectionName = "messages";
+    documentInfo.filterInfo = {
+        _id: ObjectID(messageId)
+    };
+    documentInfo.updateInfo = {
+        $set: editableFields
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(docInfo => {
+                if (1 === docInfo.ok) {
+                    resolve({
+                        success: 1
+                    })
+                }
+            })
+            .catch(err => {
+                winston('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
+}
+
+async function editConversation(conversationId, editableFields) {
+    let documentInfo = {};
+    documentInfo.collectionName = "messages";
+    documentInfo.filterInfo = {
+        $or: [
+            {_id: ObjectID(conversationId)},
+            {conversationId: conversationId}
+        ]
+
+    };
+    documentInfo.updateInfo = {
+        $set: editableFields
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocuments(documentInfo)
+            .then(docInfo => {
+                resolve({
+                    code: 200,
+                    status: "success",
+                    message: `You successfully updated ${docInfo.modifiedCount} documents`
+                })
+            })
+            .catch(err => {
+                winston.log('error', err);
+                reject(errorTexts.forEnyCase)
+            })
     });
 }
