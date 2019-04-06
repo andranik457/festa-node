@@ -19,6 +19,7 @@ const flights       = require("./routes/flights");
 const classes       = require("./routes/classes");
 const searches      = require("./routes/searches");
 const orders        = require("./routes/orders");
+const reports       = require("./routes/reports");
 const users         = require("./routes/users");
 const routes        = require("./routes/routes");
 const cors          = require('cors');
@@ -48,6 +49,7 @@ app.use("/api/flights", flights);
 app.use("/api/classes", classes);
 app.use("/api/search", searches);
 app.use("/api/orders", orders);
+app.use("/api/reports", reports);
 app.use("/api/users", users);
 app.use("/", routes);
 

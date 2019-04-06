@@ -6,6 +6,7 @@ const _             = require("underscore");
 const winston       = require("winston");
 const mongoRequests = require("../dbQueries/mongoRequests");
 const Helper        = require("../modules/helper");
+const moment        = require("moment");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const ObjectID      = require('mongodb').ObjectID;
@@ -15,7 +16,8 @@ const userHelper = {
     asyncGetUserInfoByEmail,
     asyncUseUserBalance,
     getBalanceUpdateInfo,
-    useBalanceByAdmin
+    useBalanceByAdmin,
+    getBalanceChanges
 };
 
 /**
@@ -121,6 +123,11 @@ async function asyncUseUserBalance(userId, amount) {
     });
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<{currency, rate: *|number, updateInfo: {$inc: {"balance.currentBalance": number, "balance.currentCredit": number}}}>}
+ */
 async function getBalanceUpdateInfo(data) {
     let payForCredit = 0;
     let payForBalance = 0;
@@ -155,6 +162,11 @@ async function getBalanceUpdateInfo(data) {
     return updateBalanceInfo;
 }
 
+/**
+ *
+ * @param data
+ * @returns {Promise<*>}
+ */
 async function useBalanceByAdmin(data) {
     let getFromCredit = 0;
     let getFromBalance = 0;
@@ -196,6 +208,41 @@ async function useBalanceByAdmin(data) {
             }
         }
     };
+}
+
+async function getBalanceChanges(userId, start, end) {
+    if (!userId || !start || !end) {
+        return "Please check imput data and try again"
+    }
+
+    let documentInfo = {};
+    documentInfo.collectionName = "balanceHistory";
+    documentInfo.filterInfo = {
+        $and: [
+            {userId: userId.toString()},
+            {createdAt: {$gte: parseInt(moment(start).format("X"))}},
+            {createdAt: {$lt: (parseInt(moment(end).format("X")) + 86400)}}
+        ]
+    };
+    documentInfo.projectionInfo = {
+        _id: 0
+    };
+    documentInfo.optionInfo = {
+        sort: {
+            createdAt: 1
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                resolve(documents)
+            })
+            .catch(err => {
+                winston('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
 }
 
 module.exports = userHelper;

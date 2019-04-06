@@ -8,13 +8,15 @@ const mongoRequests = require("../dbQueries/mongoRequests");
 const successTexts  = require("../texts/successTexts");
 const errorTexts    = require("../texts/errorTexts");
 const ObjectID      = require('mongodb').ObjectID;
+const moment        = require("moment");
 
 const orderHelper = {
     getOrdersByFlightId,
     getPreOrdersByFlightId,
     getOrdersByClassId,
     getPreOrdersByClassId,
-    removePreOrdersByPnr
+    removePreOrdersByPnr,
+    getOrdersByAgentIdCreatedDate
 };
 
 async function getOrdersByFlightId(flightId) {
@@ -110,6 +112,41 @@ async function removePreOrdersByPnr(pnr) {
             })
             .catch(err => {
                 winston.log('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
+}
+
+async function getOrdersByAgentIdCreatedDate(userId, start, end) {
+    if (!userId || !start || !end) {
+        return "Please check imput data and try again"
+    }
+
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        $and: [
+            {agentId: userId.toString()},
+            {createdAt: {$gte: parseInt(moment(start).format("X"))}},
+            {createdAt: {$lt: (parseInt(moment(end).format("X")) + 86400)}}
+        ]
+    };
+    documentInfo.projectionInfo = {
+        _id: 0
+    };
+    documentInfo.optionInfo = {
+        sort: {
+            createdAt: 1
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                resolve(documents)
+            })
+            .catch(err => {
+                winston('error', err);
                 reject(errorTexts.forEnyCase)
             })
     });
