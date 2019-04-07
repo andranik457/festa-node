@@ -16,7 +16,8 @@ const orderHelper = {
     getOrdersByClassId,
     getPreOrdersByClassId,
     removePreOrdersByPnr,
-    getOrdersByAgentIdCreatedDate
+    getOrdersByAgentIdCreatedDate,
+    getOrdersByFilters
 };
 
 async function getOrdersByFlightId(flightId) {
@@ -139,6 +140,31 @@ async function getOrdersByAgentIdCreatedDate(userId, start, end) {
             createdAt: 1
         }
     };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.findDocuments(documentInfo)
+            .then(documents => {
+                resolve(documents)
+            })
+            .catch(err => {
+                winston('error', err);
+                reject(errorTexts.forEnyCase)
+            })
+    });
+}
+
+async function getOrdersByFilters(filter) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = filter;
+    documentInfo.projectionInfo = {};
+    documentInfo.optionInfo = {
+        sort: {
+            createdAt: 1
+        }
+    };
+
+    console.log(documentInfo.filterInfo);
 
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)

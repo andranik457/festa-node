@@ -24,4 +24,21 @@ router.post("/:agentId/balance-changes", (req, res) => {
         });
 });
 
+/**
+ * Get orders Full Data
+ */
+router.post("/orders-full-data", (req, res) => {
+    reportFunc.ordersFullData(req)
+        .then(result => {
+            res.status(result.code);
+            res.send(result)
+        })
+        .catch(err => {
+            winston.log("error", err);
+
+            res.status(err.code);
+            return res.json(err);
+        });
+});
+
 module.exports = router;
