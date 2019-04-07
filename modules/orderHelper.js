@@ -163,9 +163,7 @@ async function getOrdersByFilters(filter) {
             createdAt: 1
         }
     };
-
-    console.log(documentInfo.filterInfo);
-
+    
     return new Promise((resolve, reject) => {
         mongoRequests.findDocuments(documentInfo)
             .then(documents => {
