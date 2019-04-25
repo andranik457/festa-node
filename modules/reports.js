@@ -300,6 +300,14 @@ const reportsInfo = {
             filter.$and.push({"passengerInfo.passengerType": data.body.passengerType})
         }
 
+        if (filter !== "{ '$and': [] }") {
+            return Promise.reject({
+                code: 400,
+                message: "You need to fill at last one field!",
+                result: []
+            })
+        }
+
         let fullResult = await orderHelper.getOrdersByFilters(filter);
 
         return {

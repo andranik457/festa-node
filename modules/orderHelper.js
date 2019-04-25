@@ -147,7 +147,7 @@ async function getOrdersByAgentIdCreatedDate(userId, start, end) {
                 resolve(documents)
             })
             .catch(err => {
-                winston('error', err);
+                winston.log('error', err);
                 reject(errorTexts.forEnyCase)
             })
     });
@@ -170,7 +170,7 @@ async function getOrdersByFilters(filter) {
                 resolve(documents)
             })
             .catch(err => {
-                winston('error', err);
+                winston.log('error', err);
                 reject(errorTexts.forEnyCase)
             })
     });
