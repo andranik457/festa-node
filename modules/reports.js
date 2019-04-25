@@ -68,14 +68,50 @@ const reportsInfo = {
 
     async ordersFullData (req) {
         let possibleFields = {
-            fromTo: {
-                name: "From",
+            departureFrom: {
+                name: "Departure From",
                 type: "text",
                 minLength: 1,
                 maxLength: 124
             },
-            fromToDate: {
-                name: "From Date",
+            departureTo: {
+                name: "Departure To",
+                type: "text",
+                minLength: 1,
+                maxLength: 124
+            },
+            returnFrom: {
+                name: "Return From",
+                type: "text",
+                minLength: 1,
+                maxLength: 124
+            },
+            returnTo: {
+                name: "Return To",
+                type: "text",
+                minLength: 1,
+                maxLength: 124
+            },
+            departureFromDate: {
+                name: "Departure From Date",
+                type: "onlyDate",
+                minLength: 5,
+                maxLength: 24,
+            },
+            departureToDate: {
+                name: "Departure To Date",
+                type: "onlyDate",
+                minLength: 5,
+                maxLength: 24,
+            },
+            returnFromDate: {
+                name: "Return From Date",
+                type: "onlyDate",
+                minLength: 5,
+                maxLength: 24,
+            },
+            returnToDate: {
+                name: "Return To Date",
                 type: "onlyDate",
                 minLength: 5,
                 maxLength: 24,
@@ -122,8 +158,14 @@ const reportsInfo = {
                 minLength: 1,
                 maxLength: 124,
             },
-            saleDate: {
-                name: "Sale Date",
+            saleDateStart: {
+                name: "Sale Date Start",
+                type: "onlyDate",
+                minLength: 1,
+                maxLength: 124,
+            },
+            saleDateEnd: {
+                name: "Sale Date End",
                 type: "onlyDate",
                 minLength: 1,
                 maxLength: 124,
@@ -163,15 +205,19 @@ const reportsInfo = {
             $and: []
         };
 
-        // check start date
+        // check pnr
         if (undefined !== data.body.pnr) {
             filter.$and.push({pnr: data.body.pnr})
         }
 
-        // check sale date
-        if (undefined !== data.body.saleDate) {
-            filter.$and.push({createdAt: {$gte: parseInt(moment(data.body.saleDate).format("X"))}});
-            filter.$and.push({createdAt: {$lt: parseInt(moment(data.body.saleDate).format("X")) + 86400}})
+        // check sale date Start
+        if (undefined !== data.body.saleDateStart) {
+            filter.$and.push({createdAt: {$gte: parseInt(moment(data.body.saleDateStart).format("X"))}});
+        }
+
+        // check sale date End
+        if (undefined !== data.body.saleDateEnd) {
+            filter.$and.push({createdAt: {$lt: parseInt(moment(data.body.saleDateEnd).format("X")) + 86400}});
         }
 
         // check agentId
@@ -179,24 +225,44 @@ const reportsInfo = {
             filter.$and.push({agentId: data.body.agentId.toString()});
         }
 
-        // check from | to
-        if (undefined !== data.body.fromTo) {
-            filter.$and.push({
-                $or: [
-                    {"travelInfo.departureFlightInfo.from": data.body.fromTo},
-                    {"travelInfo.returnFlightInfo.from": data.body.fromTo}
-                ]
-            })
+        // check departureFlightInfo from
+        if (undefined !== data.body.departureFrom) {
+            filter.$and.push({"travelInfo.departureFlightInfo.from": data.body.departureFrom})
         }
 
-        // check from | to date
-        if (undefined !== data.body.fromToDate) {
-            filter.$and.push({
-                $or: [
-                    {"travelInfo.departureFlightInfo.dateInfo.startDate": data.body.fromToDate},
-                    {"travelInfo.returnFlightInfo.dateInfo.startDate": data.body.fromToDate}
-                ]
-            })
+        // check departureFlightInfo to
+        if (undefined !== data.body.departureTo) {
+            filter.$and.push({"travelInfo.departureFlightInfo.to": data.body.departureTo})
+        }
+
+        // check returnFlightInfo from
+        if (undefined !== data.body.returnFrom) {
+            filter.$and.push({"travelInfo.returnFlightInfo.from": data.body.returnFrom})
+        }
+
+        // check returnFlightInfo to
+        if (undefined !== data.body.returnTo) {
+            filter.$and.push({"travelInfo.returnFlightInfo.to": data.body.returnTo})
+        }
+
+        // check departure from date
+        if (undefined !== data.body.departureFromDate) {
+            filter.$and.push({"travelInfo.departureFlightInfo.dateInfo.startDate": data.body.departureFromDate})
+        }
+
+        // check departure to date
+        if (undefined !== data.body.departureToDate) {
+            filter.$and.push({"travelInfo.departureFlightInfo.dateInfo.endDate": data.body.departureToDate})
+        }
+
+        // check return form date
+        if (undefined !== data.body.returnFromDate) {
+            filter.$and.push({"travelInfo.returnFlightInfo.dateInfo.startDate": data.body.returnFromDate})
+        }
+
+        // check return to date
+        if (undefined !== data.body.returnToDate) {
+            filter.$and.push({"travelInfo.returnFlightInfo.dateInfo.endDate": data.body.returnToDate})
         }
 
         // class name
