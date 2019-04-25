@@ -92,6 +92,12 @@ const reportsInfo = {
                 minLength: 5,
                 maxLength: 24,
             },
+            ticketStatus: {
+                name: "Ticket Status",
+                type: "text",
+                minLength: 2,
+                maxLength: 64,
+            },
             className: {
                 name: "Class Name",
                 type: "text",
@@ -206,6 +212,11 @@ const reportsInfo = {
         // check ticket number
         if (undefined !== data.body.ticketNumber) {
             filter.$and.push({"passengerInfo.ticketNumber": data.body.ticketNumber})
+        }
+
+        // check ticket status
+        if (undefined !== data.body.ticketStatus) {
+            filter.$and.push({"ticketStatus": data.body.ticketStatus})
         }
 
         // check passenger name
