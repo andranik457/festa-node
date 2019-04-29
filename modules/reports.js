@@ -300,7 +300,7 @@ const reportsInfo = {
             filter.$and.push({"passengerInfo.passengerType": data.body.passengerType})
         }
 
-        if (filter !== "{ '$and': [] }") {
+        if (filter['$and'].length === 0) {
             return Promise.reject({
                 code: 400,
                 message: "You need to fill at last one field!",
