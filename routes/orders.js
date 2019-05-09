@@ -104,4 +104,14 @@ router.post("/booking-to-ticketing/:pnr", async (req, res, next) => {
     }
 });
 
+router.post("/split/:pnr", async (req, res, next) => {
+    try {
+        res.send(await orderFunc.split(req));
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 module.exports = router;

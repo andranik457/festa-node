@@ -1124,8 +1124,227 @@ const orderInfo = {
         else {
             return Promise.reject(errorTexts.enoughMoney)
         }
-    }
+    },
 
+    async split (req) {
+
+        let possibleFields = {
+            ticketNumber: {
+                name: "Ticket Number",
+                type: "text",
+                minLength: 12,
+                maxLength: 12,
+                required: true
+            },
+        };
+
+        let data = {
+            body: req.body,
+            userInfo: req.userInfo,
+            pnr: req.params.pnr.toString(),
+            possibleForm: possibleFields,
+            editableFields: possibleFields,
+            editableFieldsValues: req.body
+        };
+
+        await Helper.validateData(data);
+
+        // get order by pnr
+        let pnrInfo = {
+            body: data.body,
+            userInfo: data.userInfo,
+            pnr: data.pnr
+        };
+
+        let orderInfo = await getOrderInfo(pnrInfo);
+
+        if (orderInfo === null) {
+            return Promise.reject({
+                code: 400,
+                status: 'error',
+                message: 'PNR not found please check and try again!'
+            })
+        }
+
+        if (orderInfo.ticketStatus !== "Ticketing") {
+            return Promise.reject({
+                code: 400,
+                status: 'error',
+                message: 'Order status need to be Ticketing!'
+            })
+        }
+
+        let splittedPassengerInfo = {};
+        let mainPassengerInfo = [];
+        for (let i = 0; i < orderInfo.passengerInfo.length; i++) {
+            if (orderInfo.passengerInfo[i].ticketNumber === data.body.ticketNumber) {
+                splittedPassengerInfo = orderInfo.passengerInfo[i];
+            }
+            else {
+                mainPassengerInfo.push(orderInfo.passengerInfo[i])
+            }
+        }
+
+        if (!Object.keys(splittedPassengerInfo).length) {
+            return Promise.reject({
+                code: 400,
+                status: "error",
+                message: "Please check ticket number and try again! (ticket number not found)"
+            })
+        }
+
+        // define spletted and main orders
+        // unset documentId
+        delete orderInfo["_id"];
+        let splettedOrder = JSON.parse(JSON.stringify(orderInfo));
+        let mainOrder = JSON.parse(JSON.stringify(orderInfo));
+
+        // set new users info
+        splettedOrder.passengerInfo = [];
+        splettedOrder.passengerInfo.push(splittedPassengerInfo);
+        mainOrder.passengerInfo = mainPassengerInfo;
+
+        // check passenger type
+        if (splittedPassengerInfo.passengerType === "Infant") {
+            splettedOrder.travelInfo.passengersCount = 1;
+            splettedOrder.travelInfo.usedSeats = 0;
+            //
+            mainOrder.travelInfo.passengersCount = mainOrder.travelInfo.passengersCount - 1;
+        }
+        else {
+            splettedOrder.travelInfo.passengersCount = 1;
+            splettedOrder.travelInfo.usedSeats = 1;
+            //
+            mainOrder.travelInfo.passengersCount = mainOrder.travelInfo.passengersCount - 1;
+            mainOrder.travelInfo.usedSeats = mainOrder.travelInfo.usedSeats - 1;
+        }
+
+        // get spletted user ticket price
+        for (let i in orderInfo.travelInfo.departureClassInfo.prices) {
+            if (splittedPassengerInfo.passengerType === "Adults") {
+                if (orderInfo.travelInfo.departureClassInfo.prices[i].adultPriceInfo !== undefined) {
+                     [splettedOrder, mainOrder] = await Promise.all([
+                        checkPricesForSplitOrder(orderInfo, splettedOrder, i, "departureClassInfo", "adultPriceInfo"),
+                        checkPricesForMainOrder(orderInfo, mainOrder, i, "departureClassInfo", "adultPriceInfo")
+                     ]);
+                }
+            }
+            else if (splittedPassengerInfo.passengerType === "Child") {
+                if (orderInfo.travelInfo.departureClassInfo.prices[i].childPriceInfo !== undefined) {
+                    [splettedOrder, mainOrder] = await Promise.all([
+                        checkPricesForSplitOrder(orderInfo, splettedOrder, i, "departureClassInfo", "childPriceInfo"),
+                        checkPricesForMainOrder(orderInfo, mainOrder, i, "departureClassInfo", "childPriceInfo")
+                    ]);
+                }
+            }
+            else if (splittedPassengerInfo.passengerType === "Infant") {
+                if (orderInfo.travelInfo.departureClassInfo.prices[i].infantPrice !== undefined) {
+                    [splettedOrder, mainOrder] = await Promise.all([
+                        checkPricesForSplitOrder(orderInfo, splettedOrder, i, "departureClassInfo", "infantPrice"),
+                        checkPricesForMainOrder(orderInfo, mainOrder, i, "departureClassInfo", "infantPrice")
+                    ]);
+                }
+            }
+
+            // for return class
+            if (orderInfo.travelInfo.returnClassInfo !== undefined) {
+                if (splittedPassengerInfo.passengerType === "Adults") {
+                    if (orderInfo.travelInfo.returnClassInfo.prices[i].adultPriceInfo !== undefined) {
+                        [splettedOrder, mainOrder] = await Promise.all([
+                            checkPricesForSplitOrder(orderInfo, splettedOrder, i, "returnClassInfo", "adultPriceInfo"),
+                            checkPricesForMainOrder(orderInfo, mainOrder, i, "returnClassInfo", "adultPriceInfo")
+                        ]);
+                    }
+                }
+                else if (splittedPassengerInfo.passengerType === "Child") {
+                    if (orderInfo.travelInfo.returnClassInfo.prices[i].childPriceInfo !== undefined) {
+                        [splettedOrder, mainOrder] = await Promise.all([
+                            checkPricesForSplitOrder(orderInfo, splettedOrder, i, "returnClassInfo", "childPriceInfo"),
+                            checkPricesForMainOrder(orderInfo, mainOrder, i, "returnClassInfo", "childPriceInfo")
+                        ]);
+                    }
+                }
+                else if (splittedPassengerInfo.passengerType === "Infant") {
+                    if (orderInfo.travelInfo.returnClassInfo.prices[i].infantPrice !== undefined) {
+                        [splettedOrder, mainOrder] = await Promise.all([
+                            checkPricesForSplitOrder(orderInfo, splettedOrder, i, "returnClassInfo", "infantPrice"),
+                            checkPricesForMainOrder(orderInfo, mainOrder, i, "returnClassInfo", "infantPrice")
+                        ]);
+                    }
+                }
+            }
+
+        }
+
+        // check main order ticket total price
+        mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.count = orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.count - splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.count;
+        mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPrice = orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.totalPrice - splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPrice;
+        mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger = orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger - splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
+        mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency = orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency - splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+        mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger = orderInfo.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger - splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+        // check return main total price
+        if (orderInfo.travelInfo.returnClassInfo !== undefined) {
+            mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.count = orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.count - splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.count;
+            mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPrice = orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.totalPrice - splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPrice;
+            mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger = orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger - splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
+            mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency = orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency - splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+            mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger = orderInfo.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger - splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+        }
+
+        // check ticket total price
+        splettedOrder.ticketPrice.total = splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPrice;
+        splettedOrder.ticketPrice.totalForPassenger = splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
+        splettedOrder.ticketPrice.totalFlightCurrency = splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+        splettedOrder.ticketPrice.totalFlightCurrencyForPassenger = splettedOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+        //
+        mainOrder.ticketPrice.total = mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPrice;
+        mainOrder.ticketPrice.totalForPassenger = mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceForPassenger;
+        mainOrder.ticketPrice.totalFlightCurrency = mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+        mainOrder.ticketPrice.totalFlightCurrencyForPassenger = mainOrder.travelInfo.departureClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+
+        if (orderInfo.travelInfo.returnClassInfo !== undefined) {
+            // check ticket total price
+            splettedOrder.ticketPrice.total += splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPrice;
+            splettedOrder.ticketPrice.totalForPassenger += splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
+            splettedOrder.ticketPrice.totalFlightCurrency += splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+            splettedOrder.ticketPrice.totalFlightCurrencyForPassenger += splettedOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+            //
+            mainOrder.ticketPrice.total += mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPrice;
+            mainOrder.ticketPrice.totalForPassenger += mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceForPassenger;
+            mainOrder.ticketPrice.totalFlightCurrency += mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrency;
+            mainOrder.ticketPrice.totalFlightCurrencyForPassenger += mainOrder.travelInfo.returnClassInfo.pricesTotalInfo.totalPriceFlightCurrencyForPassenger;
+        }
+
+        // get new pnr's for new orders
+        let splettedPnr = await Helper.getNewPnrId();
+        let mainPnr = await Helper.getNewPnrId();
+
+        splettedOrder.pnr = splettedPnr;
+        splettedOrder.travelInfo.pnr = splettedPnr;
+        splettedOrder.parentPnr = orderInfo.pnr;
+        //
+        mainOrder.pnr = mainPnr;
+        mainOrder.travelInfo.pnr = mainPnr;
+        mainOrder.parentPnr = orderInfo.pnr;
+
+
+        let [oldOrderResult, splettedOrderResult, mainOrderResult] = await Promise.all([
+            makeOrderSplitted(orderInfo.pnr, splettedPnr, mainPnr),
+            insertChildOrder(splettedOrder),
+            insertChildOrder(mainOrder)
+        ]);
+
+        return {
+            code: 200,
+            status: "success",
+            message: "You successfully split order",
+            data: {
+                oldOrderPnr: orderInfo.pnr,
+                splettedPnr: splettedPnr,
+                mainPnr: mainPnr
+            }
+        }
+    }
 };
 
 
@@ -2041,8 +2260,6 @@ async function checkPassengerIdInExistedPassengersInfo(passengersInfo, newPassen
 }
 
 async function fillPassengersNewDataWithOldData(oldData, newData) {
-    // console.log(oldData, '--------------------------', newData);
-
     return oldData.concat(newData)
 }
 
@@ -2089,6 +2306,97 @@ async function checkPnrInOrders(pnr) {
             })
             .catch(err => {
                 reject(err)
+            })
+    });
+}
+
+async function checkPricesForSplitOrder(orderInfo, newOrderInfo, i, travelWay, passengerType) {
+    newOrderInfo.travelInfo[travelWay].prices[i][passengerType] = {
+        "eachPrice" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPrice,
+        "eachPriceForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceForPassenger,
+        "eachPriceFlightCurrency" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrency,
+        "eachPriceFlightCurrencyForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrencyForPassenger,
+        "count" : "1",
+        "totalPrice" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPrice,
+        "totalPriceForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceForPassenger,
+        "totalPriceFlightCurrency" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrency,
+        "totalPriceFlightCurrencyForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrencyForPassenger
+    };
+
+    newOrderInfo.travelInfo[travelWay].pricesTotalInfo.count = 1;
+    newOrderInfo.travelInfo[travelWay].pricesTotalInfo.totalPrice = orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPrice;
+    newOrderInfo.travelInfo[travelWay].pricesTotalInfo.totalPriceForPassenger = orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceForPassenger;
+    newOrderInfo.travelInfo[travelWay].pricesTotalInfo.totalPriceFlightCurrency = orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrency;
+    newOrderInfo.travelInfo[travelWay].pricesTotalInfo.totalPriceFlightCurrencyForPassenger = orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrencyForPassenger;
+
+    return newOrderInfo
+}
+
+async function checkPricesForMainOrder(orderInfo, mainOrderInfo, i, travelWay, passengerType) {
+    mainOrderInfo.travelInfo[travelWay].prices[i][passengerType] = {
+        "eachPrice" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPrice,
+        "eachPriceForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceForPassenger,
+        "eachPriceFlightCurrency" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrency,
+        "eachPriceFlightCurrencyForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrencyForPassenger,
+        "count" : (parseInt(orderInfo.travelInfo[travelWay].prices[i][passengerType].count) - 1).toString(),
+        "totalPrice" : orderInfo.travelInfo[travelWay].prices[i][passengerType].totalPrice - orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPrice,
+        "totalPriceForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].totalPriceForPassenger - orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceForPassenger,
+        "totalPriceFlightCurrency" : orderInfo.travelInfo[travelWay].prices[i][passengerType].totalPriceFlightCurrency - orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrency,
+        "totalPriceFlightCurrencyForPassenger" : orderInfo.travelInfo[travelWay].prices[i][passengerType].totalPriceFlightCurrencyForPassenger - orderInfo.travelInfo[travelWay].prices[i][passengerType].eachPriceFlightCurrencyForPassenger,
+    };
+
+    return mainOrderInfo
+}
+
+async function makeOrderSplitted(pnr, splettedPnr, mainPnr) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.filterInfo = {
+        'pnr': pnr
+    };
+    documentInfo.updateInfo = {
+        '$set': {
+            pnrChild: {
+                split: splettedPnr,
+                main: mainPnr
+            },
+            ticketStatus: "Spletted"
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.updateDocument(documentInfo)
+            .then(updateRes => {
+                if (updateRes.lastErrorObject.n > 0) {
+                    resolve({
+                        code: 200,
+                        status: "success",
+                        message: "You successfully split order"
+                    })
+                }
+                else {
+                    reject(errorTexts.pnrNotFound)
+                }
+            })
+    });
+}
+
+async function insertChildOrder(orderInfo) {
+    let documentInfo = {};
+    documentInfo.collectionName = "orders";
+    documentInfo.documentInfo = orderInfo;
+
+    return new Promise((resolve, reject) => {
+        mongoRequests.insertDocument(documentInfo)
+            .then(insertRes => {
+                insertRes.insertedCount === 1
+                    ? resolve({
+                        code: 200,
+                        status: "Success",
+                        message: "",
+                        data: orderInfo
+                    })
+                    : reject(errorTexts.cantSaveDocumentToMongo)
             })
     });
 }
