@@ -1334,6 +1334,18 @@ const orderInfo = {
             insertChildOrder(mainOrder)
         ]);
 
+        // log data
+        let logData = {
+            userId: data.userInfo.userId,
+            action: "Split Order",
+            oldData: orderInfo.pnr,
+            newData: {
+                splitPnr: splettedPnr,
+                mainPnr: mainPnr
+            }
+        };
+        Helper.addToLogs(logData);
+
         return {
             code: 200,
             status: "success",

@@ -134,6 +134,21 @@ router.post("/exchange/rate-by-range", async (req, res, next) => {
     }
 });
 
+router.get("/exchange/add-manual/:date", async (req, res, next) => {
+    try {
+        res.send({
+            code: 200,
+            status: "OK",
+            message: "Exchange Rate Info successfully added!",
+            result : await exchangeFunc.addManual(req)
+        })
+    }
+    catch (err) {
+        winston.log("error", err);
+        next(err);
+    }
+});
+
 router.get("/orderInfo/:pnr/:lastName", async (req, res, next) => {
     try {
         res.send(await Helper.getOrderByPnrLastName(req));

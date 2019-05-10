@@ -72,6 +72,37 @@ const exchange = {
                     reject(errorTexts.forEnyCase)
                 })
         });
+    },
+
+    addManual: async (req) => {
+        let data = {
+            userInfo: req.userInfo,
+            date: req.params.date.toString(),
+        };
+
+        if (data.date === undefined || data.date === '') {
+            return {
+                code: 556
+            }
+        }
+
+        let exchangeRateDoc = {
+            collectionName: "exchangeRate",
+            documentInfo: {
+                date: data.date,
+                festaRate: {},
+                cbRate: {}
+            }
+        };
+
+        try {
+            let exchangeRateResult = await mongoRequests.insertDocument(exchangeRateDoc);
+
+            return "successfully added"
+        }
+        catch (err) {
+            return "cant add to db"
+        }
     }
 
 };
