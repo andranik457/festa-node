@@ -1327,6 +1327,23 @@ const orderInfo = {
         mainOrder.travelInfo.pnr = mainPnr;
         mainOrder.parentPnr = orderInfo.pnr;
 
+        // make some string id's object id's
+        splettedOrder.travelInfo._id = ObjectID(splettedOrder.travelInfo._id);
+        mainOrder.travelInfo._id = ObjectID(mainOrder.travelInfo._id);
+        //
+        splettedOrder.travelInfo.departureFlightInfo._id = ObjectID(splettedOrder.travelInfo.departureFlightInfo._id);
+        mainOrder.travelInfo.departureFlightInfo._id = ObjectID(mainOrder.travelInfo.departureFlightInfo._id);
+        //
+        splettedOrder.travelInfo.departureClassInfo._id = ObjectID(splettedOrder.travelInfo.departureClassInfo._id);
+        mainOrder.travelInfo.departureClassInfo._id = ObjectID(mainOrder.travelInfo.departureClassInfo._id);
+        //
+        if (orderInfo.travelInfo.returnClassInfo !== undefined) {
+            splettedOrder.travelInfo.returnFlightInfo._id = ObjectID(splettedOrder.travelInfo.returnFlightInfo._id);
+            mainOrder.travelInfo.returnFlightInfo._id = ObjectID(mainOrder.travelInfo.returnFlightInfo._id);
+            //
+            splettedOrder.travelInfo.returnClassInfo._id = ObjectID(splettedOrder.travelInfo.returnClassInfo._id);
+            mainOrder.travelInfo.returnClassInfo._id = ObjectID(mainOrder.travelInfo.returnClassInfo._id);
+        }
 
         let [oldOrderResult, splettedOrderResult, mainOrderResult] = await Promise.all([
             makeOrderSplitted(orderInfo.pnr, splettedPnr, mainPnr),
